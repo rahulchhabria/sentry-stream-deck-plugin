@@ -102,7 +102,7 @@ export class HumanLoop extends SingletonAction {
 
 		this.issues.set(key.id, issue);
 		await Promise.all([
-			key.setTitle(issue.shortId),
+			key.setTitle(""),
 			key.setImage(createKeyImage({
 				background: "#21113d",
 				accent: "#a78bfa",
