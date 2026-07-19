@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Sentry Settings</title>
+	<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+</head>
+<body>
+	<sdpi-item label="Sentry URL">
+		<sdpi-textfield
+			setting="sentryUrl"
+			placeholder="https://sentry.io"
+			global>
+		</sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="Auth Token">
+		<sdpi-password
+			setting="authToken"
+			required
+			global>
+		</sdpi-password>
+	</sdpi-item>
+
+	<sdpi-item label="Organization">
+		<sdpi-textfield
+			setting="organizationSlug"
+			required
+			global>
+		</sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="Project">
+		<sdpi-textfield
+			setting="projectSlug"
+			required
+			global>
+		</sdpi-textfield>
+	</sdpi-item>
+</body>
+</html>

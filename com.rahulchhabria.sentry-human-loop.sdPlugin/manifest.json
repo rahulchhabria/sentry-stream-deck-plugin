@@ -1,0 +1,65 @@
+{
+	"Name": "Sentry",
+	"Version": "0.1.0.0",
+	"Author": "Rahul Chhabria",
+	"Actions": [
+		{
+			"Name": "Error Pulse",
+			"UUID": "com.rahulchhabria.sentry-human-loop.error-pulse",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Pulses red when a new Sentry issue fires; press to open it for review.",
+			"PropertyInspectorPath": "ui/sentry-settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "bottom",
+					"FontSize": 18
+				}
+			]
+		},
+		{
+			"Name": "Human in the Loop",
+			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Opens the latest unresolved issue in Sentry for human review.",
+			"PropertyInspectorPath": "ui/sentry-settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "bottom",
+					"FontSize": 13
+				}
+			]
+		}
+	],
+	"Category": "Sentry",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "Flash a Stream Deck key when a new Sentry issue fires, and open issues for review.",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "24",
+		"Debug": "enabled"
+	},
+	"UUID": "com.rahulchhabria.sentry-human-loop"
+}
