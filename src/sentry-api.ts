@@ -1,5 +1,8 @@
 import { getSentryBaseUrl, type ConfiguredSentrySettings } from "./settings";
 
+const MAX_FETCH_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 250;
+
 export type SentryIssue = {
 	id: string;
 	shortId: string;
@@ -56,22 +59,44 @@ export async function getUnresolvedIssues(
 }
 
 async function fetchIssuePage(url: string, authToken: string): Promise<Response> {
-	const response = await fetch(url, {
-		headers: {
-			Accept: "application/json",
-			Authorization: `Bearer ${authToken.trim()}`
-		},
-		signal: AbortSignal.timeout(10_000)
-	});
+	for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
+		let response: Response;
+		try {
+			response = await fetch(url, {
+				headers: {
+					Accept: "application/json",
+					Authorization: `Bearer ${authToken.trim()}`
+				},
+				signal: AbortSignal.timeout(10_000)
+			});
+		} catch (error) {
+			if (attempt < MAX_FETCH_ATTEMPTS) {
+				await delay(RETRY_DELAY_MS);
+				continue;
+			}
+			throw error;
+		}
 
-	if (!response.ok) {
+		if (response.ok) {
+			return response;
+		}
+
+		if (response.status >= 500 && attempt < MAX_FETCH_ATTEMPTS) {
+			await delay(RETRY_DELAY_MS);
+			continue;
+		}
+
 		throw new SentryApiError(
 			`Sentry Issues API returned HTTP ${response.status}`,
 			response.status
 		);
 	}
 
-	return response;
+	throw new SentryApiError("Sentry Issues API retry limit reached");
+}
+
+function delay(milliseconds: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function parseIssues(data: unknown[]): SentryIssue[] {

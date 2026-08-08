@@ -7,8 +7,10 @@
     },
     "scripts": {
         "build": "rollup -c",
+		"link": "streamdeck link com.rahulchhabria.sentry-human-loop.sdPlugin",
         "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.rahulchhabria.sentry-human-loop\"",
         "validate": "streamdeck validate com.rahulchhabria.sentry-human-loop.sdPlugin",
+		"pack:check": "streamdeck pack --dry-run --force com.rahulchhabria.sentry-human-loop.sdPlugin",
         "pack": "streamdeck pack --force com.rahulchhabria.sentry-human-loop.sdPlugin",
         "test": "node --import tsx --test 'src/**/*.test.ts'",
         "typecheck": "tsc --noEmit -p tsconfig.test.json",

@@ -10,6 +10,10 @@ export type SentrySettings = {
 	 * {@link DEFAULT_SENTRY_URL} when unset or invalid.
 	 */
 	sentryUrl?: string;
+	/** Absolute path of the repository the coding agent should inspect. */
+	repositoryPath?: string;
+	/** Optional absolute path to the new `sentry` CLI executable. */
+	sentryCliPath?: string;
 };
 
 /** Settings that are guaranteed to have the required connection fields. */

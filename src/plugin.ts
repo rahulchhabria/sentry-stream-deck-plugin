@@ -1,7 +1,9 @@
 import streamDeck from "@elgato/streamdeck";
 
+import { AgentPlan } from "./actions/agent-plan";
 import { ErrorPulse } from "./actions/error-pulse";
-import { HumanLoop } from "./actions/human-loop";
+import { SelectedIssue } from "./actions/human-loop";
+import { NextIssue, PreviousIssue } from "./actions/issue-navigation";
 
 streamDeck.logger.setLevel("info");
 
@@ -12,6 +14,9 @@ streamDeck.logger.setLevel("info");
 streamDeck.settings.useExperimentalMessageIdentifiers = true;
 
 streamDeck.actions.registerAction(new ErrorPulse());
-streamDeck.actions.registerAction(new HumanLoop());
+streamDeck.actions.registerAction(new PreviousIssue());
+streamDeck.actions.registerAction(new SelectedIssue());
+streamDeck.actions.registerAction(new NextIssue());
+streamDeck.actions.registerAction(new AgentPlan());
 
 streamDeck.connect();

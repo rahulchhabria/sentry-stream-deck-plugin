@@ -7,9 +7,10 @@ import streamDeck, {
 	type WillDisappearEvent
 } from "@elgato/streamdeck";
 
-import { issuePoller, type IssueSnapshot } from "../issue-poller";
+import type { IssueSelectionSnapshot } from "../issue-selection";
+import { issueSelectionStore } from "../issue-selection-store";
 import { createKeyImage } from "../key-visual";
-import { getProjectIssuesUrl, type SentryIssue } from "../sentry-api";
+import { getProjectIssuesUrl } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 
 /**
@@ -20,9 +21,8 @@ import { getSentrySettings, hasRequiredSettings } from "../settings";
  * opens the selected issue in Sentry for review.
  */
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.review-issue" })
-export class HumanLoop extends SingletonAction {
+export class SelectedIssue extends SingletonAction {
 	private readonly subscriptions = new Map<string, () => void>();
-	private readonly issues = new Map<string, SentryIssue>();
 
 	override onWillAppear(ev: WillAppearEvent): void {
 		if (!ev.action.isKey()) {
@@ -30,7 +30,7 @@ export class HumanLoop extends SingletonAction {
 		}
 
 		this.stopSubscription(ev.action.id);
-		const unsubscribe = issuePoller.subscribe(
+		const unsubscribe = issueSelectionStore.subscribe(
 			(snapshot) => this.render(ev.action as KeyAction, snapshot)
 		);
 		this.subscriptions.set(ev.action.id, unsubscribe);
@@ -38,11 +38,10 @@ export class HumanLoop extends SingletonAction {
 
 	override onWillDisappear(ev: WillDisappearEvent): void {
 		this.stopSubscription(ev.action.id);
-		this.issues.delete(ev.action.id);
 	}
 
 	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
-		const issue = this.issues.get(ev.action.id);
+		const issue = issueSelectionStore.getSnapshot().selectedIssue;
 		if (issue) {
 			await streamDeck.system.openUrl(issue.permalink);
 			return;
@@ -57,9 +56,8 @@ export class HumanLoop extends SingletonAction {
 		await streamDeck.system.openUrl(getProjectIssuesUrl(settings));
 	}
 
-	private async render(key: KeyAction, snapshot: IssueSnapshot): Promise<void> {
-		if (snapshot.status === "unconfigured") {
-			this.issues.delete(key.id);
+	private async render(key: KeyAction, snapshot: IssueSelectionSnapshot): Promise<void> {
+		if (snapshot.source.status === "unconfigured") {
 			await Promise.all([
 				key.setTitle("SETUP"),
 				key.setImage(createKeyImage({
@@ -71,10 +69,9 @@ export class HumanLoop extends SingletonAction {
 			return;
 		}
 
-		if (snapshot.status === "error") {
-			this.issues.delete(key.id);
-			const isAuth = snapshot.statusCode === 401 || snapshot.statusCode === 403;
-			const isRate = snapshot.statusCode === 429;
+		if (snapshot.source.status === "error") {
+			const isAuth = snapshot.source.statusCode === 401 || snapshot.source.statusCode === 403;
+			const isRate = snapshot.source.statusCode === 429;
 			await Promise.all([
 				key.setTitle(isAuth ? "AUTH" : isRate ? "RATE" : "API ERR"),
 				key.setImage(createKeyImage({
@@ -86,9 +83,8 @@ export class HumanLoop extends SingletonAction {
 			return;
 		}
 
-		const [issue] = snapshot.issues;
+		const issue = snapshot.selectedIssue;
 		if (!issue) {
-			this.issues.delete(key.id);
 			await Promise.all([
 				key.setTitle("NONE"),
 				key.setImage(createKeyImage({
@@ -100,13 +96,16 @@ export class HumanLoop extends SingletonAction {
 			return;
 		}
 
-		this.issues.set(key.id, issue);
 		await Promise.all([
-			key.setTitle(""),
+			key.setTitle(
+				snapshot.source.status === "stale"
+					? snapshot.source.statusCode === 429 ? "RATE" : "STALE"
+					: ""
+			),
 			key.setImage(createKeyImage({
 				background: "#21113d",
 				accent: "#a78bfa",
-				label: "REVIEW"
+				label: issue.shortId
 			}))
 		]);
 	}

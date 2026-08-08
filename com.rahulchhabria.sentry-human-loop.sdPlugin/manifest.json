@@ -21,10 +21,61 @@
 			]
 		},
 		{
-			"Name": "Human in the Loop",
+			"Name": "Previous Issue",
+			"UUID": "com.rahulchhabria.sentry-human-loop.previous-issue",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Selects the previous unresolved issue in the shared Sentry queue.",
+			"PropertyInspectorPath": "ui/sentry-settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "bottom",
+					"FontSize": 13
+				}
+			]
+		},
+		{
+			"Name": "Selected Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Opens the latest unresolved issue in Sentry for human review.",
+			"Tooltip": "Shows and opens the issue selected by the shared Sentry queue.",
+			"PropertyInspectorPath": "ui/sentry-settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "bottom",
+					"FontSize": 13
+				}
+			]
+		},
+		{
+			"Name": "Next Issue",
+			"UUID": "com.rahulchhabria.sentry-human-loop.next-issue",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Selects the next unresolved issue in the shared Sentry queue.",
+			"PropertyInspectorPath": "ui/sentry-settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "bottom",
+					"FontSize": 13
+				}
+			]
+		},
+		{
+			"Name": "Agent Plan",
+			"UUID": "com.rahulchhabria.sentry-human-loop.agent-plan",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Requests a read-only Seer fix plan for the selected issue using the Sentry CLI.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -41,7 +92,7 @@
 	"Category": "Sentry",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
-	"Description": "Flash a Stream Deck key when a new Sentry issue fires, and open issues for review.",
+	"Description": "Monitor, navigate, inspect, and request read-only fix plans for Sentry issues.",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {

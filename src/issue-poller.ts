@@ -19,6 +19,15 @@ export type IssueSnapshot =
 		/** True when the project has more unresolved issues than were fetched. */
 		hasMore: boolean;
 	}
+	| {
+		status: "stale";
+		/** Last successful page, retained while a transient refresh is failing. */
+		issues: SentryIssue[];
+		newIssues: [];
+		hasMore: boolean;
+		message: string;
+		statusCode?: number;
+	}
 	| { status: "error"; issues: []; message: string; statusCode?: number };
 
 type Subscriber = (snapshot: IssueSnapshot) => void | Promise<void>;
@@ -29,6 +38,7 @@ class IssuePoller {
 	private timer?: ReturnType<typeof setInterval>;
 	private refreshPromise?: Promise<void>;
 	private refreshRequested = false;
+	private lastSuccessfulPage?: Pick<Extract<IssueSnapshot, { status: "ready" }>, "issues" | "hasMore">;
 
 	/** Detects genuinely new issues rather than re-alerting on the whole backlog. */
 	private readonly newIssueTracker = new NewIssueTracker();
@@ -102,11 +112,22 @@ class IssuePoller {
 			const { issues, hasMore } = await getUnresolvedIssues(settings);
 			const newIssues = this.newIssueTracker.observe(issues);
 
+			this.lastSuccessfulPage = { issues, hasMore };
 			this.publish({ status: "ready", issues, newIssues, hasMore });
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Unknown error";
 			const statusCode = error instanceof SentryApiError ? error.status : undefined;
 			streamDeck.logger.error(`Shared Sentry issue refresh failed: ${message}`);
+			if (this.lastSuccessfulPage && isTransientRefreshFailure(statusCode)) {
+				this.publish({
+					status: "stale",
+					...this.lastSuccessfulPage,
+					newIssues: [],
+					message,
+					statusCode
+				});
+				return;
+			}
 			this.publish({ status: "error", issues: [], message, statusCode });
 		}
 	}
@@ -114,6 +135,7 @@ class IssuePoller {
 	private resetBaseline(connectionKey: string | undefined): void {
 		this.connectionKey = connectionKey;
 		this.newIssueTracker.reset();
+		this.lastSuccessfulPage = undefined;
 	}
 
 	private publish(snapshot: IssueSnapshot): void {
@@ -129,6 +151,10 @@ class IssuePoller {
 			streamDeck.logger.error(`Issue subscriber update failed: ${message}`);
 		});
 	}
+}
+
+function isTransientRefreshFailure(statusCode: number | undefined): boolean {
+	return statusCode === undefined || statusCode === 429 || statusCode >= 500;
 }
 
 export const issuePoller = new IssuePoller();

@@ -8,6 +8,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 
 import { issuePoller, type IssueSnapshot } from "../issue-poller";
+import { issueSelectionStore } from "../issue-selection-store";
 import { createKeyImage } from "../key-visual";
 import { getProjectIssuesUrl, type SentryIssue } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
@@ -70,6 +71,7 @@ export class ErrorPulse extends SingletonAction {
 
 		const issue = this.latestIssues.get(ev.action.id);
 		if (issue) {
+			issueSelectionStore.select(issue.id);
 			await streamDeck.system.openUrl(issue.permalink);
 			return;
 		}
@@ -115,6 +117,17 @@ export class ErrorPulse extends SingletonAction {
 		const issue = snapshot.issues[0];
 		if (!issue) {
 			this.clearKeyState(key.id);
+			if (snapshot.status === "stale") {
+				await Promise.all([
+					key.setTitle(snapshot.statusCode === 429 ? "RATE" : "STALE"),
+					key.setImage(createKeyImage({
+						background: "#2c1d08",
+						accent: "#f59e0b",
+						label: "RETRY"
+					}))
+				]);
+				return;
+			}
 			await Promise.all([
 				key.setTitle("CLEAR"),
 				key.setImage(createKeyImage({
@@ -140,7 +153,14 @@ export class ErrorPulse extends SingletonAction {
 		}
 
 		this.stopFlashing(key.id);
-		await Promise.all([key.setTitle(""), key.setImage(ERROR_STEADY)]);
+		await Promise.all([
+			key.setTitle(
+				snapshot.status === "stale"
+					? snapshot.statusCode === 429 ? "RATE" : "STALE"
+					: ""
+			),
+			key.setImage(ERROR_STEADY)
+		]);
 	}
 
 	private ensureFlashing(key: KeyAction): void {

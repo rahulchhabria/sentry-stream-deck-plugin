@@ -21,6 +21,22 @@ function stubFetch(response: Response): { calls: FetchCall[] } {
 	return { calls };
 }
 
+function stubFetchSequence(results: Array<Response | Error>): { calls: FetchCall[] } {
+	const calls: FetchCall[] = [];
+	globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+		calls.push({ url: String(input), init });
+		const result = results.shift();
+		if (!result) {
+			throw new Error("Unexpected fetch call");
+		}
+		if (result instanceof Error) {
+			throw result;
+		}
+		return result;
+	}) as typeof fetch;
+	return { calls };
+}
+
 function settings(overrides: Partial<ConfiguredSentrySettings> = {}): ConfiguredSentrySettings {
 	return {
 		authToken: "sntrys_token",
@@ -86,13 +102,50 @@ test("hasMore is false when the next page has no results", async () => {
 });
 
 test("throws SentryApiError with the status on a failed response", async () => {
-	stubFetch(new Response("nope", { status: 401 }));
+	const { calls } = stubFetch(new Response("nope", { status: 401 }));
 
 	await assert.rejects(getUnresolvedIssues(settings()), (error: unknown) => {
 		assert.ok(error instanceof SentryApiError);
 		assert.equal(error.status, 401);
 		return true;
 	});
+	assert.equal(calls.length, 1);
+});
+
+test("retries one transient server failure", async () => {
+	const { calls } = stubFetchSequence([
+		new Response("nope", { status: 502 }),
+		new Response(JSON.stringify([rawIssue]))
+	]);
+
+	const { issues } = await getUnresolvedIssues(settings());
+	assert.equal(issues[0]?.id, "1");
+	assert.equal(calls.length, 2);
+});
+
+test("retries one network failure", async () => {
+	const { calls } = stubFetchSequence([
+		new TypeError("fetch failed"),
+		new Response(JSON.stringify([rawIssue]))
+	]);
+
+	const { issues } = await getUnresolvedIssues(settings());
+	assert.equal(issues[0]?.id, "1");
+	assert.equal(calls.length, 2);
+});
+
+test("stops after the bounded retry limit", async () => {
+	const { calls } = stubFetchSequence([
+		new Response("nope", { status: 500 }),
+		new Response("still nope", { status: 502 })
+	]);
+
+	await assert.rejects(getUnresolvedIssues(settings()), (error: unknown) => {
+		assert.ok(error instanceof SentryApiError);
+		assert.equal(error.status, 502);
+		return true;
+	});
+	assert.equal(calls.length, 2);
 });
 
 test("throws when the body is not an array", async () => {
