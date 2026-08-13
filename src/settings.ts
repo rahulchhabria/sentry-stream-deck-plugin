@@ -14,6 +14,15 @@ export type SentrySettings = {
 	repositoryPath?: string;
 	/** Optional absolute path to the new `sentry` CLI executable. */
 	sentryCliPath?: string;
+	/** Optional absolute path to the local coding agent CLI (e.g. `agent`, `claude`, or `codex`). */
+	agentCliPath?: string;
+	/**
+	 * Which agent command to target for argv shaping. Defaults to `agent`.
+	 * Accepts `agent`, `claude`, or `codex`, but free-form values are allowed.
+	 */
+	agentKind?: string;
+	/** Optional extra args to pass to the agent CLI before the prompt. */
+	agentExtraArgs?: string;
 };
 
 /** Settings that are guaranteed to have the required connection fields. */
