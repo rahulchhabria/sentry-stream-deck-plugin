@@ -1,8 +1,6 @@
 import streamDeck, {
 	action,
 	type KeyAction,
-	type KeyDownEvent,
-	SingletonAction,
 	type WillAppearEvent,
 	type WillDisappearEvent
 } from "@elgato/streamdeck";
@@ -12,6 +10,8 @@ import { issueSelectionStore } from "../issue-selection-store";
 import { createKeyImage } from "../key-visual";
 import { getProjectIssuesUrl, type SentryIssue } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
+import { LongPressAction } from "../long-press";
+import { pulseMuteStore } from "../pulse-mute";
 
 const FLASH_INTERVAL_MS = 600;
 const ERROR_BRIGHT = createKeyImage({
@@ -30,14 +30,31 @@ const ERROR_STEADY = createKeyImage({
 	accent: "#b52c48",
 	label: "ERRORS"
 });
+const QUIET_IMAGE = createKeyImage({
+	background: "#10241d",
+	accent: "#34d399",
+	label: "QUIET"
+});
+const MUTE_IMAGE = createKeyImage({
+	background: "#0f231d",
+	accent: "#10b981",
+	label: "MUTE"
+});
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.error-pulse" })
-export class ErrorPulse extends SingletonAction {
+export class ErrorPulse extends LongPressAction {
 	private readonly subscriptions = new Map<string, () => void>();
 	private readonly flashTimers = new Map<string, ReturnType<typeof setInterval>>();
 	private readonly latestIssues = new Map<string, SentryIssue>();
+	private readonly latestSnapshots = new Map<string, IssueSnapshot>();
 	/** Key ids currently alerting on an unacknowledged new issue. */
 	private readonly alerting = new Set<string>();
+	/** Subscription to mute state changes per key id. */
+	private readonly muteSubscriptions = new Map<string, () => void>();
+
+	constructor() {
+		super(700);
+	}
 
 	override onWillAppear(ev: WillAppearEvent): void {
 		if (!ev.action.isKey()) {
@@ -50,6 +67,15 @@ export class ErrorPulse extends SingletonAction {
 			(snapshot) => this.render(key, snapshot)
 		);
 		this.subscriptions.set(key.id, unsubscribe);
+
+		// Also re-render on mute toggles.
+		this.stopMuteSubscription(key.id);
+		const unsubMute = pulseMuteStore.subscribe(() => {
+			if (this.latestSnapshots.has(key.id)) {
+				void this.render(key, this.latestSnapshots.get(key.id)!);
+			}
+		});
+		this.muteSubscriptions.set(key.id, unsubMute);
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent): void {
@@ -57,35 +83,40 @@ export class ErrorPulse extends SingletonAction {
 		this.stopFlashing(ev.action.id);
 		this.latestIssues.delete(ev.action.id);
 		this.alerting.delete(ev.action.id);
+		this.stopMuteSubscription(ev.action.id);
 	}
 
-	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
-		// Pressing the key acknowledges an active alert: stop flashing and settle
-		// to the steady state before opening the issue.
-		if (this.alerting.delete(ev.action.id)) {
-			this.stopFlashing(ev.action.id);
-			if (ev.action.isKey()) {
-				await ev.action.setImage(ERROR_STEADY);
-			}
+	protected override async onShortPress(action: KeyAction): Promise<void> {
+		// Acknowledge: stop flashing and select the newest "new" issue if possible.
+		if (this.alerting.delete(action.id)) {
+			this.stopFlashing(action.id);
+			await action.setImage(ERROR_STEADY);
 		}
 
-		const issue = this.latestIssues.get(ev.action.id);
+		const snapshot = this.latestSnapshots.get(action.id);
+		const issue = pickNewestNewIssue(snapshot) ?? this.latestIssues.get(action.id);
 		if (issue) {
 			issueSelectionStore.select(issue.id);
-			await streamDeck.system.openUrl(issue.permalink);
 			return;
 		}
 
+		// Fallback: open the project issues list if nothing is selected.
 		const settings = await getSentrySettings();
 		if (!hasRequiredSettings(settings)) {
-			await ev.action.showAlert();
+			await action.showAlert();
 			return;
 		}
-
 		await streamDeck.system.openUrl(getProjectIssuesUrl(settings));
 	}
 
+	protected override async onLongPress(_action: KeyAction): Promise<void> {
+		// Toggle mute state for the session.
+		pulseMuteStore.toggle();
+	}
+
 	private async render(key: KeyAction, snapshot: IssueSnapshot): Promise<void> {
+		this.latestSnapshots.set(key.id, snapshot);
+
 		if (snapshot.status === "unconfigured") {
 			this.clearKeyState(key.id);
 			await Promise.all([
@@ -128,14 +159,7 @@ export class ErrorPulse extends SingletonAction {
 				]);
 				return;
 			}
-			await Promise.all([
-				key.setTitle("CLEAR"),
-				key.setImage(createKeyImage({
-					background: "#10241d",
-					accent: "#34d399",
-					label: "QUIET"
-				}))
-			]);
+			await Promise.all([key.setTitle(""), key.setImage(QUIET_IMAGE)]);
 			return;
 		}
 
@@ -144,11 +168,22 @@ export class ErrorPulse extends SingletonAction {
 			this.alerting.add(key.id);
 		}
 
+		// While muted: never flash; show MUTE.
+		if (pulseMuteStore.isMuted()) {
+			this.stopFlashing(key.id);
+			await Promise.all([key.setTitle(""), key.setImage(MUTE_IMAGE)]);
+			return;
+		}
+
 		if (this.alerting.has(key.id)) {
 			// Alerting: flash until the user acknowledges with a keypress. Do not
 			// restart the timer on every poll, or the animation would stutter.
 			this.ensureFlashing(key);
-			await Promise.all([key.setTitle(""), key.setImage(ERROR_BRIGHT)]);
+			const newCount = snapshot.newIssues.length;
+			await Promise.all([
+				key.setTitle(newCount > 1 ? String(newCount) : ""),
+				key.setImage(ERROR_BRIGHT)
+			]);
 			return;
 		}
 
@@ -197,4 +232,18 @@ export class ErrorPulse extends SingletonAction {
 		this.subscriptions.get(actionId)?.();
 		this.subscriptions.delete(actionId);
 	}
+
+	private stopMuteSubscription(actionId: string): void {
+		this.muteSubscriptions.get(actionId)?.();
+		this.muteSubscriptions.delete(actionId);
+	}
+}
+
+function pickNewestNewIssue(snapshot: IssueSnapshot | undefined): SentryIssue | undefined {
+	if (!snapshot || snapshot.status === "unconfigured" || snapshot.status === "error") {
+		return undefined;
+	}
+	// Choose the first issue in the current page that is marked new this cycle.
+	const newSet = new Set(snapshot.newIssues.map((i) => i.id));
+	return snapshot.issues.find((i) => newSet.has(i.id));
 }

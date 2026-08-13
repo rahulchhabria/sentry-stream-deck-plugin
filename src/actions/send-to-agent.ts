@@ -1,8 +1,6 @@
 import streamDeck, {
 	action,
 	type KeyAction,
-	type KeyDownEvent,
-	SingletonAction,
 	type WillAppearEvent,
 	type WillDisappearEvent
 } from "@elgato/streamdeck";
@@ -10,8 +8,8 @@ import streamDeck, {
 import { issueSelectionStore } from "../issue-selection-store";
 import { createKeyImage } from "../key-visual";
 import { agentHandoffManager } from "../agent-handoff-manager";
-import { sentryPlanManager } from "../sentry-plan-manager";
 import { getSentrySettings } from "../settings";
+import { LongPressAction } from "../long-press";
 
 const IMAGES = {
 	setup: createKeyImage({ background: "#201a2c", accent: "#8b7aa8", label: "CONFIG" }),
@@ -24,8 +22,12 @@ const IMAGES = {
 };
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.send-to-agent" })
-export class SendToAgent extends SingletonAction {
+export class SendToAgent extends LongPressAction {
 	private readonly subscriptions = new Map<string, Array<() => void>>();
+
+	constructor() {
+		super(700);
+	}
 
 	override onWillAppear(ev: WillAppearEvent): void {
 		if (!ev.action.isKey()) {
@@ -36,8 +38,7 @@ export class SendToAgent extends SingletonAction {
 		const render = () => this.render(ev.action as KeyAction);
 		this.subscriptions.set(ev.action.id, [
 			issueSelectionStore.subscribe(render),
-			agentHandoffManager.subscribe(render),
-			sentryPlanManager.subscribe(render)
+			agentHandoffManager.subscribe(render)
 		]);
 	}
 
@@ -45,34 +46,34 @@ export class SendToAgent extends SingletonAction {
 		this.stopSubscriptions(ev.action.id);
 	}
 
-	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
+	protected override async onShortPress(action: KeyAction): Promise<void> {
+		await this.launch(action, { requestDraftPr: false });
+	}
+
+	protected override async onLongPress(action: KeyAction): Promise<void> {
+		await this.launch(action, { requestDraftPr: true });
+	}
+
+	private async launch(action: KeyAction, opts: { requestDraftPr: boolean }): Promise<void> {
 		const issue = issueSelectionStore.getSnapshot().selectedIssue;
 		if (!issue) {
-			await ev.action.showAlert();
+			await action.showAlert();
 			return;
 		}
-
 		const status = agentHandoffManager.getStatus();
 		if (status.status === "running") {
-			await ev.action.showAlert();
+			await action.showAlert();
 			return;
 		}
 		if (status.status === "sent" && status.issueId === issue.id) {
-			// No-op on a second press while SENT for this issue.
-			return;
+			return; // No-op when already sent for this issue.
 		}
-
 		const settings = await getSentrySettings();
 		if (!settings.repositoryPath?.trim()) {
-			await ev.action.showAlert();
+			await action.showAlert();
 			return;
 		}
-
-		const plan = sentryPlanManager.getStatus();
-		const planText = plan.status === "ready" && plan.issueId === issue.id
-			? plan.output
-			: undefined;
-		await agentHandoffManager.start(issue, settings, { planText });
+		await agentHandoffManager.start(issue, settings, { requestDraftPr: opts.requestDraftPr });
 	}
 
 	private async render(key: KeyAction): Promise<void> {

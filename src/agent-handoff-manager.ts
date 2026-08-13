@@ -31,7 +31,7 @@ class AgentHandoffManager {
 	async start(
 		issue: SentryIssue,
 		settings: SentrySettings,
-		options?: { planText?: string },
+		options?: { planText?: string; requestDraftPr?: boolean },
 		launcher?: TerminalLauncher
 	): Promise<void> {
 		if (this.current.status === "running") {
@@ -56,7 +56,8 @@ class AgentHandoffManager {
 
 			const prompt = buildAgentPrompt(issue, settings, {
 				planText: options?.planText,
-				handoffPath
+				handoffPath,
+				requestDraftPr: options?.requestDraftPr
 			});
 			const command = buildAgentCommand(
 				settings.agentKind,
