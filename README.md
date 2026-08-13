@@ -1,63 +1,79 @@
 # Sentry for Stream Deck
 
-A physical issue console for Sentry. The plugin watches a project, flashes when
-a **new** unresolved issue fires, lets a group of keys navigate one shared issue
-queue, and can request a read-only Seer fix plan through the Sentry CLI.
+A physical, six-key human-in-the-loop pipeline for Sentry. The plugin watches a
+project, flashes when a **new** unresolved issue fires, lets you walk the
+highest-pain issues, hands off to a local coding agent, follows PR status, and
+can resolve/archive issues when you're done.
 
 ## Actions
 
-### Error Pulse
+Layout for a 6‑key Stream Deck:
+
+```
+PULSE    THIS    NEXT
+SEND     LOOP    DONE
+```
+
+### Pulse
 
 Shares a single poll of Sentry's v0 Issues API every 15 seconds. The key:
 
 - shows a steady red **ERRORS** state while a backlog of unresolved issues exists;
-- **flashes** red when a genuinely new issue arrives (the existing backlog at
-  startup is baselined and does not flash);
-- stops flashing when pressed (acknowledged) and opens the latest issue in Sentry;
-- glows green (**CLEAR**) when the project has no unresolved issues;
+- **flashes** red on genuinely new issues (the existing backlog at startup is baselined);
+- while flashing, shows a count of new issues;
+- short press: acknowledges the flash and selects the newest new issue (does not open a browser);
+- long press (~700ms): toggles a session‑local **MUTE** state (no flash; still polls and updates THIS/NEXT);
+- glows green (**QUIET**) when the project has no unresolved issues;
 - shows **AUTH**, **RATE**, or **API ERR** when the Sentry API rejects the request.
 
-### Previous / Selected / Next
+### This Issue / Next Issue
 
-The navigation keys move one shared selection through the latest unresolved
-issues. **Selected Issue** shows the selected short ID and opens that exact issue
-in Sentry. The selection stays stable when fresh polls reorder the queue. During
-a transient API failure, the last successful queue remains usable and the keys
-show **STALE** (or a trailing `!` on the queue position) until polling recovers.
+Walk a shared selection through the highest‑pain unresolved issues (ordered by
+`userCount`, then total `count`, then recency). The selection remains stable
+across refreshes and during transient API failures.
 
-### Agent Plan
-
-Runs `sentry issue plan <organization>/<issue-short-id>` in the configured
-repository. This asks Seer for root-cause analysis and a proposed fix plan, but
-does not launch a coding agent or change code. While running the key shows
-**RUN**; after completion it shows **READY**, and pressing it opens the issue in
-Sentry.
+- THIS shows the selected short ID with a compact heat hint (user count or total events).
+  Short press opens the culprit file in your local editor (Cursor if available)
+  using the latest event stacktrace; falls back to the Sentry permalink.
+  Long press cycles to the next issue.
+- NEXT selects the next issue (wraps).
 
 ### Send to Agent
 
 Starts your preferred local coding agent in the configured repository with a
 prompt that includes the selected Sentry issue's short ID and permalink. The
-agent is expected to have Sentry MCP configured, so it can call
+agent is expected to have Sentry MCP configured so it can call
 `get_issue_details` and `analyze_issue_with_seer` itself.
 
 - Key states mirror other actions: **SEND** (idle), **RUN** (launching),
   **SENT** (handoff completed), **FAIL** (launch error), **REPO** (missing
-  repository), **NONE** (no selection), plus **AUTH/RATE/API ERR** from the
-  shared poller when relevant.
-- If a Seer plan was already fetched for the same issue via Agent Plan, it is
-  included in the prompt and optionally written to a local handoff file
-  `.sentry-deck/handoff.json` alongside org/project/id/url (never secrets).
-- Interactive CLIs need a TTY: the plugin opens a real terminal window (macOS
-  Terminal or Windows Terminal) in your repository and runs the agent command
-  there. A second press while the key shows **SENT** is a no-op.
+  repository), **NONE** (no selection), plus **AUTH/RATE/API ERR** when relevant.
+- Short press launches with a minimal prompt. Long press explicitly asks the agent
+  to open a draft PR linking the issue.
+- The plugin never auto‑launches an agent when flashing.
+
+### Loop
+
+Follow‑up on the last successful SEND. On a slow interval (≈30s), the key
+looks for a PR in the configured repository whose title mentions the issue
+short ID using the GitHub CLI (`gh`). It shows **DRAFT**, **CI**, **FAIL**,
+or **MERGED** when it can determine a state; otherwise **SENT** (handoff
+happened, no PR yet). Short press opens the PR if known, else the issue.
+
+### Done
+
+Operates on the selected issue:
+
+- Short press: resolve the issue via the Sentry Issues API.
+- Long press: archive/ignore the issue.
+- Requires a token with `event:write`. When missing, the key shows **AUTH**.
 
 ## Requirements
 
 - Node.js 24 or newer
 - Stream Deck 7.1 or newer
 - A Sentry auth token with `event:read` and `project:read` scopes
-- For **Agent Plan**, the new [`sentry` CLI](https://cli.sentry.dev/) installed
-  and authenticated with `sentry auth login`, plus Seer enabled for the project
+- For DONE, add `event:write` to resolve/archive.
 
 ## Configure
 
