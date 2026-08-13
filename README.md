@@ -33,6 +33,24 @@ does not launch a coding agent or change code. While running the key shows
 **RUN**; after completion it shows **READY**, and pressing it opens the issue in
 Sentry.
 
+### Send to Agent
+
+Starts your preferred local coding agent in the configured repository with a
+prompt that includes the selected Sentry issue's short ID and permalink. The
+agent is expected to have Sentry MCP configured, so it can call
+`get_issue_details` and `analyze_issue_with_seer` itself.
+
+- Key states mirror other actions: **SEND** (idle), **RUN** (launching),
+  **SENT** (handoff completed), **FAIL** (launch error), **REPO** (missing
+  repository), **NONE** (no selection), plus **AUTH/RATE/API ERR** from the
+  shared poller when relevant.
+- If a Seer plan was already fetched for the same issue via Agent Plan, it is
+  included in the prompt and optionally written to a local handoff file
+  `.sentry-deck/handoff.json` alongside org/project/id/url (never secrets).
+- Interactive CLIs need a TTY: the plugin opens a real terminal window (macOS
+  Terminal or Windows Terminal) in your repository and runs the agent command
+  there. A second press while the key shows **SENT** is a no-op.
+
 ## Requirements
 
 - Node.js 24 or newer
@@ -54,9 +72,25 @@ Inspector settings (stored in Stream Deck global settings, shared by all actions
 | **Project** | Required. Project slug. |
 | **Repository** | Absolute path to the local repository used by Agent Plan. |
 | **Sentry CLI** | Optional executable or absolute path. Defaults to `sentry`. An absolute path is often more reliable when Stream Deck does not inherit the shell's `PATH`. |
+| **Agent CLI** | Optional executable or absolute path to your coding agent. Defaults to `agent` (Cursor CLI). Absolute paths are recommended. |
+| **Agent Kind** | Optional hint for argv shaping: `agent`, `claude`, or `codex`. Free text allowed; defaults to `agent`. |
+| **Agent Extra Args** | Optional extra arguments passed before the prompt. |
 
 The token is stored in Stream Deck's plugin global settings and is never
 hardcoded or written to the plugin logs.
+
+### Coding agent setup
+
+This plugin does not embed Sentry MCP. Install or enable Sentry MCP in your
+agent:
+
+- Cursor CLI: `npx @sentry/ai install` in the repository, or point to a hosted
+  MCP server like `https://mcp.sentry.dev/mcp/<org>/<project>`.
+- Claude Code: configure the same MCP server or local install in your project
+  settings.
+
+The Error Pulse flash is an interrupt; the new key press is the decision. The
+plugin never auto-launches an agent when flashing.
 
 ## Develop
 
@@ -78,7 +112,7 @@ npm run pack:check
 ## Test
 
 ```sh
-npm test        # node --test suite (poller diff, settings, Sentry API)
+npm test        # node --test suite (poller diff, settings, Sentry API, handoff)
 npm run typecheck
 npm run sim      # opens an interactive browser simulator of the key states
 ```
