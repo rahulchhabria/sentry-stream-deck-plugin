@@ -49,6 +49,8 @@ test("second start while running is a no-op (busy)", async () => {
 			repositoryPath: "/repo",
 			agentCliPath: "agent"
 		}, undefined, slowLauncher);
+		// Allow the first launch to progress.
+		await new Promise((r) => setTimeout(r, 10));
 		assert.equal(launches, 1, "should not start a second launch while running");
 	} finally {
 		unsubscribe();
