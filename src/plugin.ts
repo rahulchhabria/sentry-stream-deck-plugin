@@ -4,6 +4,7 @@ import { AgentPlan } from "./actions/agent-plan";
 import { ErrorPulse } from "./actions/error-pulse";
 import { SelectedIssue } from "./actions/human-loop";
 import { NextIssue, PreviousIssue } from "./actions/issue-navigation";
+import { SendToAgent } from "./actions/send-to-agent";
 
 streamDeck.logger.setLevel("info");
 
@@ -18,5 +19,6 @@ streamDeck.actions.registerAction(new PreviousIssue());
 streamDeck.actions.registerAction(new SelectedIssue());
 streamDeck.actions.registerAction(new NextIssue());
 streamDeck.actions.registerAction(new AgentPlan());
+streamDeck.actions.registerAction(new SendToAgent());
 
 streamDeck.connect();
