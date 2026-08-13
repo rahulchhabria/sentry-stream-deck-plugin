@@ -38,16 +38,25 @@ test("buildAgentCommand places the prompt last and respects extra args", () => {
 	assert.deepEqual(cmd4.args, ["--alpha", "two words", "go"]);
 });
 
-test("buildAgentPrompt includes shortId and permalink but not token", () => {
+test("buildAgentPrompt (short press) includes shortId and permalink but not token, and no draft PR ask", () => {
 	const prompt = buildAgentPrompt(issue, {
 		...settings,
 		authToken: "shhh"
-	}, { planText: "Root cause\nFix plan", handoffPath: ".sentry-deck/handoff.json" });
+	}, { planText: "Root cause\nFix plan", handoffPath: ".sentry-deck/handoff.json", requestDraftPr: false });
 	assert.match(prompt, /WEB-123/);
 	assert.match(prompt, /https:\/\/sentry\.io\/issues\/123\//);
 	assert.ok(!/shhh/.test(prompt), "should not include auth token");
 	assert.match(prompt, /Seer plan:/);
 	assert.match(prompt, /\.sentry-deck\/handoff\.json/);
+	assert.ok(!/draft PR/i.test(prompt), "short press should not ask for draft PR");
+});
+
+test("buildAgentPrompt (long press) explicitly asks for a draft PR", () => {
+	const prompt = buildAgentPrompt(issue, {
+		...settings,
+		authToken: "shhh"
+	}, { requestDraftPr: true });
+	assert.match(prompt, /draft PR/i);
 });
 
 test("writeHandoffFile writes expected shape without secrets and updates gitignore best-effort", async () => {

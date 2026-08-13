@@ -4,10 +4,10 @@
 	"Author": "Rahul Chhabria",
 	"Actions": [
 		{
-			"Name": "Error Pulse",
+			"Name": "Pulse",
 			"UUID": "com.rahulchhabria.sentry-human-loop.error-pulse",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Pulses red when a new Sentry issue fires; press to open it for review.",
+			"Tooltip": "Flashes on genuinely new Sentry issues; short press acknowledges and selects; long press toggles mute.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -21,27 +21,10 @@
 			]
 		},
 		{
-			"Name": "Previous Issue",
-			"UUID": "com.rahulchhabria.sentry-human-loop.previous-issue",
-			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Selects the previous unresolved issue in the shared Sentry queue.",
-			"PropertyInspectorPath": "ui/sentry-settings.html",
-			"Controllers": [
-				"Keypad"
-			],
-			"States": [
-				{
-					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 13
-				}
-			]
-		},
-		{
-			"Name": "Selected Issue",
+			"Name": "This Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Shows and opens the issue selected by the shared Sentry queue.",
+			"Tooltip": "Shows the selected issue. Short press opens culprit file (best-effort) or Sentry. Long press selects next.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -58,24 +41,7 @@
 			"Name": "Next Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.next-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Selects the next unresolved issue in the shared Sentry queue.",
-			"PropertyInspectorPath": "ui/sentry-settings.html",
-			"Controllers": [
-				"Keypad"
-			],
-			"States": [
-				{
-					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 13
-				}
-			]
-		},
-		{
-			"Name": "Agent Plan",
-			"UUID": "com.rahulchhabria.sentry-human-loop.agent-plan",
-			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Requests a read-only Seer fix plan for the selected issue using the Sentry CLI.",
+			"Tooltip": "Selects the next highest-pain unresolved issue (wraps).",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -92,7 +58,41 @@
 			"Name": "Send to Agent",
 			"UUID": "com.rahulchhabria.sentry-human-loop.send-to-agent",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Sends the selected issue to your local coding agent via CLI.",
+			"Tooltip": "Sends the selected issue to your local coding agent via CLI. Long press explicitly asks for a draft PR.",
+			"PropertyInspectorPath": "ui/sentry-settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "bottom",
+					"FontSize": 13
+				}
+			]
+		},
+		{
+			"Name": "Loop",
+			"UUID": "com.rahulchhabria.sentry-human-loop.loop",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Shows follow-up status after SEND: DRAFT, CI, FAIL, MERGED, or SENT when no PR is found.",
+			"PropertyInspectorPath": "ui/sentry-settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/counter/key",
+					"TitleAlignment": "bottom",
+					"FontSize": 13
+				}
+			]
+		},
+		{
+			"Name": "Done",
+			"UUID": "com.rahulchhabria.sentry-human-loop.done",
+			"Icon": "imgs/actions/counter/icon",
+			"Tooltip": "Resolve (short) or archive (long) the selected issue via Sentry API. Requires event:write.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -109,7 +109,7 @@
 	"Category": "Sentry",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
-	"Description": "Monitor, navigate, inspect, request read-only fix plans, and hand off issues to your local coding agent.",
+	"Description": "A 6-key human-in-the-loop pipeline for Sentry on a Stream Deck: PULSE / THIS / NEXT / SEND / LOOP / DONE. Navigate highest-pain issues, hand off to a local agent, follow draft PR status, and resolve/archive.",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {

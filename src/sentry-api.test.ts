@@ -79,8 +79,24 @@ test("parses issues and drops malformed entries", async () => {
 		title: "Boom",
 		permalink: "https://sentry.io/issues/1/",
 		status: "unresolved",
-		lastSeen: "2026-07-18T00:00:00Z"
+		lastSeen: "2026-07-18T00:00:00Z",
+		firstSeen: undefined,
+		userCount: undefined,
+		count: undefined,
+		isUnhandled: undefined
 	});
+});
+
+test("parseIssues keeps only finite userCount and count", async () => {
+	const raw = {
+		...rawIssue,
+		userCount: Infinity,
+		count: "NaN"
+	};
+	stubFetch(new Response(JSON.stringify([raw])));
+	const { issues } = await getUnresolvedIssues(settings());
+	assert.equal(issues[0]?.userCount, undefined);
+	assert.equal(issues[0]?.count, undefined);
 });
 
 test("hasMore is true when the Link header advertises a next page", async () => {

@@ -14,7 +14,7 @@ const issue: SentryIssue = {
 
 test("reports error when repository path is missing", async () => {
 	const statusChanges: string[] = [];
-	const unsubscribe = agentHandoffManager.subscribe((s) => statusChanges.push(s.status));
+	const unsubscribe = agentHandoffManager.subscribe((s) => { statusChanges.push(s.status); });
 	try {
 		await agentHandoffManager.start(issue, {
 			organizationSlug: "acme",

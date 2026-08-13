@@ -10,12 +10,45 @@ export type SentryIssue = {
 	permalink: string;
 	status: string;
 	lastSeen?: string;
+	firstSeen?: string;
+	/** Number of unique users affected (when available). */
+	userCount?: number;
+	/** Total event count as a number (when available). */
+	count?: number;
+	/** Best-effort unhandled/regression hint (when available). */
+	isUnhandled?: boolean;
 };
 
 export type IssuePage = {
 	issues: SentryIssue[];
 	/** True when the project has more unresolved issues than the fetched page. */
 	hasMore: boolean;
+};
+
+/**
+ * Minimal shape of a Sentry event body for stack parsing.
+ * Only the fields needed to locate a likely culprit file are included.
+ */
+export type SentryEvent = {
+	id?: string;
+	title?: string;
+	platform?: string;
+	logentry?: { formatted?: string };
+	exception?: {
+		values?: Array<{
+			type?: string;
+			value?: string;
+			stacktrace?: {
+				frames?: Array<{
+					filename?: string;
+					abs_path?: string;
+					function?: string;
+					in_app?: boolean;
+					lineno?: number;
+				}>;
+			};
+		}>;
+	};
 };
 
 export class SentryApiError extends Error {
@@ -41,6 +74,7 @@ export async function getUnresolvedIssues(
 	const project = encodeURIComponent(settings.projectSlug.trim());
 	const query = new URLSearchParams({
 		query: "is:unresolved",
+		// Sort by last seen; actions may reorder for pain-based navigation.
 		sort: "date",
 		limit: "100"
 	});
@@ -114,13 +148,26 @@ function parseIssues(data: unknown[]): SentryIssue[] {
 			return [];
 		}
 
+		// Keep only finite numerics for stability.
+		const userCount = typeof value.userCount === "number" && Number.isFinite(value.userCount)
+			? value.userCount : undefined;
+		// API returns count as a string; coerce and keep only finite values.
+		const rawCount = typeof value.count === "string" ? Number(value.count) : undefined;
+		const count = typeof rawCount === "number" && Number.isFinite(rawCount) ? rawCount : undefined;
+		const isUnhandled = typeof value.isUnhandled === "boolean" ? value.isUnhandled : undefined;
+		const firstSeen = asString(value.firstSeen);
+
 		return [{
 			id,
 			shortId,
 			title,
 			permalink,
 			status,
-			lastSeen: asString(value.lastSeen)
+			lastSeen: asString(value.lastSeen),
+			firstSeen,
+			userCount,
+			count,
+			isUnhandled
 		}];
 	});
 }
@@ -143,6 +190,60 @@ export function getProjectIssuesUrl(settings: ConfiguredSentrySettings): string 
 		`is:unresolved project:${settings.projectSlug.trim()}`
 	);
 	return `${base}/organizations/${organization}/issues/?query=${query}`;
+}
+
+/**
+ * Retrieves the latest event for an issue, including (when available) full
+ * stacktrace frames. Best-effort: callers should gracefully handle missing data.
+ */
+export async function getLatestIssueEvent(
+	settings: ConfiguredSentrySettings,
+	issueId: string
+): Promise<SentryEvent | undefined> {
+	const base = getSentryBaseUrl(settings);
+	const organization = encodeURIComponent(settings.organizationSlug.trim());
+	const url = `${base}/api/0/organizations/${organization}/issues/${encodeURIComponent(issueId)}/events/latest/`;
+	const response = await fetch(url, {
+		headers: {
+			Accept: "application/json",
+			Authorization: `Bearer ${settings.authToken.trim()}`
+		},
+		signal: AbortSignal.timeout(10_000)
+	});
+	if (!response.ok) {
+		throw new SentryApiError(`Sentry Issue Event API returned HTTP ${response.status}`, response.status);
+	}
+	const body: unknown = await response.json();
+	if (!isRecord(body)) {
+		return undefined;
+	}
+	return body as SentryEvent;
+}
+
+/**
+ * Updates the status of an issue (resolve/archive). Requires an auth token with
+ * event:write (or stronger). Uses the group id from SentryIssue.id.
+ */
+export async function updateIssueStatus(
+	settings: ConfiguredSentrySettings,
+	issueId: string,
+	status: "resolved" | "ignored"
+): Promise<void> {
+	const base = getSentryBaseUrl(settings);
+	const url = `${base}/api/0/issues/${encodeURIComponent(issueId)}/`;
+	const response = await fetch(url, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			Accept: "application/json",
+			Authorization: `Bearer ${settings.authToken.trim()}`
+		},
+		body: JSON.stringify({ status }),
+		signal: AbortSignal.timeout(10_000)
+	});
+	if (!response.ok) {
+		throw new SentryApiError(`Sentry Update Issue API returned HTTP ${response.status}`, response.status);
+	}
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

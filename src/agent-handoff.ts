@@ -22,14 +22,17 @@ export type ProcessLauncher = (
 export function buildAgentPrompt(
 	issue: SentryIssue,
 	settings: SentrySettings,
-	options?: { planText?: string; handoffPath?: string }
+	options?: { planText?: string; handoffPath?: string; requestDraftPr?: boolean }
 ): string {
 	const lines: string[] = [
 		`Sentry issue ${issue.shortId} (${issue.permalink}).`,
 		"Use Sentry MCP get_issue_details and analyze_issue_with_seer (or the Sentry CLI if MCP is unavailable).",
 		"Identify root cause. Smallest safe fix in the right files.",
-		"Add or update a regression test. Open a draft PR linking this issue."
+		"Add or update a regression test."
 	];
+	if (options?.requestDraftPr) {
+		lines.push("Open a draft PR linking this issue.");
+	}
 	if (options?.handoffPath) {
 		lines.push(
 			`Context file: ${options.handoffPath} (org/project/id/url, and optional Seer plan).`

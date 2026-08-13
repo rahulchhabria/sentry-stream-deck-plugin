@@ -1,5 +1,6 @@
 import type { IssueSnapshot } from "./issue-poller";
 import type { SentryIssue } from "./sentry-api";
+import { sortIssuesByPain } from "./issue-order";
 
 export type IssueSelectionSnapshot = {
 	source: IssueSnapshot;
@@ -12,6 +13,8 @@ export type IssueSelectionSnapshot = {
 export class IssueSelection {
 	private source: IssueSnapshot = { status: "unconfigured", issues: [] };
 	private selectedIssueId?: string;
+	/** Cached, pain-ordered view of the current source issues. */
+	private orderedIssues: SentryIssue[] = [];
 
 	observe(source: IssueSnapshot): IssueSelectionSnapshot {
 		this.source = source;
@@ -23,14 +26,18 @@ export class IssueSelection {
 		}
 		if (source.status === "ready" && source.issues.length === 0) {
 			this.selectedIssueId = undefined;
+			this.orderedIssues = [];
 			return this.snapshot();
 		}
 
-		const selectionStillExists = source.issues.some(
+		// Recompute pain-ordered view each time the source changes.
+		this.orderedIssues = sortIssuesByPain(source.issues);
+
+		const selectionStillExists = this.orderedIssues.some(
 			(issue) => issue.id === this.selectedIssueId
 		);
 		if (!selectionStillExists) {
-			this.selectedIssueId = source.issues[0].id;
+			this.selectedIssueId = this.orderedIssues[0].id;
 		}
 		return this.snapshot();
 	}
@@ -52,8 +59,8 @@ export class IssueSelection {
 	}
 
 	snapshot(): IssueSelectionSnapshot {
-		const issues = this.source.status === "ready" || this.source.status === "stale"
-			? this.source.issues
+		const issues = (this.source.status === "ready" || this.source.status === "stale")
+			? this.orderedIssues
 			: [];
 		const selectedIndex = issues.findIndex((issue) => issue.id === this.selectedIssueId);
 		return {
@@ -66,18 +73,18 @@ export class IssueSelection {
 
 	private move(delta: -1 | 1): IssueSelectionSnapshot {
 		if ((this.source.status !== "ready" && this.source.status !== "stale")
-			|| this.source.issues.length === 0) {
+			|| this.orderedIssues.length === 0) {
 			return this.snapshot();
 		}
 
-		const currentIndex = this.source.issues.findIndex(
+		const currentIndex = this.orderedIssues.findIndex(
 			(issue) => issue.id === this.selectedIssueId
 		);
 		const startIndex = currentIndex >= 0 ? currentIndex : 0;
 		const nextIndex = (
-			startIndex + delta + this.source.issues.length
-		) % this.source.issues.length;
-		this.selectedIssueId = this.source.issues[nextIndex].id;
+			startIndex + delta + this.orderedIssues.length
+		) % this.orderedIssues.length;
+		this.selectedIssueId = this.orderedIssues[nextIndex].id;
 		return this.snapshot();
 	}
 }
