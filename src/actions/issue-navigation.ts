@@ -11,11 +11,6 @@ import type { IssueSelectionSnapshot } from "../issue-selection";
 import { issueSelectionStore } from "../issue-selection-store";
 import { createKeyImage } from "../key-visual";
 
-const PREVIOUS_IMAGE = createKeyImage({
-	background: "#151b2d",
-	accent: "#60a5fa",
-	label: "PREV"
-});
 const NEXT_IMAGE = createKeyImage({
 	background: "#151b2d",
 	accent: "#60a5fa",
@@ -84,13 +79,6 @@ abstract class IssueNavigationAction extends SingletonAction {
 	private stopSubscription(actionId: string): void {
 		this.subscriptions.get(actionId)?.();
 		this.subscriptions.delete(actionId);
-	}
-}
-
-@action({ UUID: "com.rahulchhabria.sentry-human-loop.previous-issue" })
-export class PreviousIssue extends IssueNavigationAction {
-	constructor() {
-		super("previous", PREVIOUS_IMAGE);
 	}
 }
 
