@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { platform as getPlatform } from "node:os";
 import { promises as fs } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import type { SentryIssue } from "./sentry-api";
 import type { SentrySettings } from "./settings";
@@ -140,9 +140,9 @@ export async function launchInTerminal(
 			"0",
 			"nt",
 			"-d",
-			repositoryPath,
-			command.executable,
-			...command.args
+			quoteWin(repositoryPath),
+			quoteWin(command.executable),
+			...command.args.map(quoteWin)
 		];
 		try {
 			await launcher(startWt[0], startWt.slice(1), { windowsHide: true });
@@ -156,7 +156,7 @@ export async function launchInTerminal(
 				'""',
 				"cmd.exe",
 				"/k",
-				`cd /d ${repositoryPath} && ${command.executable} ${command.args.map(quoteWin).join(" ")}`
+				`cd /d ${quoteWin(repositoryPath)} && ${quoteWin(command.executable)} ${command.args.map(quoteWin).join(" ")}`
 			];
 			await launcher(startCmd[0], startCmd.slice(1), { windowsHide: true });
 			return;
@@ -205,7 +205,7 @@ function appleScriptQuote(cmd: string): string {
 	return `"${cmd.replaceAll('"', '\\"')}"`;
 }
 
-function quoteWin(value: string): string {
+export function quoteWin(value: string): string {
 	// Basic Windows argument quoting.
 	if (!/[ \t"]/.test(value)) {
 		return value;

@@ -2,7 +2,9 @@ import streamDeck from "@elgato/streamdeck";
 
 import type { SentryIssue } from "./sentry-api";
 import type { SentrySettings } from "./settings";
-import { buildAgentCommand, buildAgentPrompt, launchInTerminal, writeHandoffFile, type ProcessLauncher } from "./agent-handoff";
+import { buildAgentCommand, buildAgentPrompt, launchInTerminal, writeHandoffFile, type AgentCommand } from "./agent-handoff";
+
+export type TerminalLauncher = (command: AgentCommand, repositoryPath: string) => Promise<void>;
 
 export type AgentHandoffStatus =
 	| { status: "idle" }
@@ -30,7 +32,7 @@ class AgentHandoffManager {
 		issue: SentryIssue,
 		settings: SentrySettings,
 		options?: { planText?: string },
-		launcher?: ProcessLauncher
+		launcher?: TerminalLauncher
 	): Promise<void> {
 		if (this.current.status === "running") {
 			return;

@@ -7,7 +7,6 @@ import streamDeck, {
 	type WillDisappearEvent
 } from "@elgato/streamdeck";
 
-import type { IssueSelectionSnapshot } from "../issue-selection";
 import { issueSelectionStore } from "../issue-selection-store";
 import { createKeyImage } from "../key-visual";
 import { agentHandoffManager } from "../agent-handoff-manager";
@@ -117,7 +116,7 @@ export class SendToAgent extends SingletonAction {
 			return;
 		}
 		if (isSelectedIssue && status.status === "error") {
-			await Promise.all([key.setTitle("RETRY"), key.setImage(IMAGES.error)]);
+			await Promise.all([key.setTitle("FAIL"), key.setImage(IMAGES.error)]);
 			return;
 		}
 

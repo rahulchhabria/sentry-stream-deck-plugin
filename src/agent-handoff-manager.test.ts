@@ -22,7 +22,9 @@ test("reports error when repository path is missing", async () => {
 			repositoryPath: " "
 		});
 		assert.equal(agentHandoffManager.getStatus().status, "error");
-		assert.ok(statusChanges.includes("running") || true); // running may not occur on validation error
+		// Should go straight to error; must not report a successful send.
+		assert.ok(!statusChanges.includes("sent"));
+		assert.ok(!statusChanges.includes("running"));
 	} finally {
 		unsubscribe();
 	}
@@ -30,7 +32,7 @@ test("reports error when repository path is missing", async () => {
 
 test("second start while running is a no-op (busy)", async () => {
 	let launches = 0;
-	const slowLauncher = async () => {
+	const slowLauncher = async (_cmd?: unknown, _repo?: string) => {
 		launches += 1;
 		await new Promise((r) => setTimeout(r, 50));
 	};
