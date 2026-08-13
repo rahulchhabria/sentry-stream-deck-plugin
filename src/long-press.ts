@@ -24,7 +24,11 @@ export abstract class LongPressAction extends SingletonAction {
 	}
 
 	override async onKeyUp(ev: KeyUpEvent): Promise<void> {
-		const started = this.downAt.get(ev.action.id) ?? 0;
+		const started = this.downAt.get(ev.action.id);
+		// Ignore spurious keyUp events with no recorded start time.
+		if (started === undefined) {
+			return;
+		}
 		this.downAt.delete(ev.action.id);
 		const heldMs = Date.now() - started;
 

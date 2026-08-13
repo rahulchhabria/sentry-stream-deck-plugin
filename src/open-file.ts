@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, relative, isAbsolute, sep } from "node:path";
 
 export type FileOpenLauncher = (
 	executable: string,
@@ -31,7 +31,22 @@ export async function openInEditorOrSystem(
 	line?: number,
 	launcher: FileOpenLauncher = run
 ): Promise<boolean> {
-	const file = join(repositoryPath, relativePath);
+	// Reject absolute paths and traversal segments.
+	if (isAbsolute(relativePath)) {
+		return false;
+	}
+	const parts = relativePath.split(/[/\\]+/).filter(Boolean);
+	if (parts.some((p) => p === "..")) {
+		return false;
+	}
+	// Normalise separators and resolve to an absolute path.
+	const normalised = parts.join(sep);
+	const file = resolve(repositoryPath, normalised);
+	// Verify the resolved path stays under the repository path.
+	const rel = relative(repositoryPath, file);
+	if (rel.startsWith("..") || isAbsolute(rel)) {
+		return false;
+	}
 	try {
 		await access(file);
 	} catch {

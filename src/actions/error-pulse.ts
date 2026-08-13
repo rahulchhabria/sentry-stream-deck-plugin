@@ -84,6 +84,7 @@ export class ErrorPulse extends LongPressAction {
 		this.latestIssues.delete(ev.action.id);
 		this.alerting.delete(ev.action.id);
 		this.stopMuteSubscription(ev.action.id);
+		this.latestSnapshots.delete(ev.action.id);
 	}
 
 	protected override async onShortPress(action: KeyAction): Promise<void> {

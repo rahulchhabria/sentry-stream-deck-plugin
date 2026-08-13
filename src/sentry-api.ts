@@ -148,9 +148,12 @@ function parseIssues(data: unknown[]): SentryIssue[] {
 			return [];
 		}
 
-		const userCount = typeof value.userCount === "number" ? value.userCount : undefined;
-		// API returns count as a string
-		const count = typeof value.count === "string" ? Number(value.count) : undefined;
+		// Keep only finite numerics for stability.
+		const userCount = typeof value.userCount === "number" && Number.isFinite(value.userCount)
+			? value.userCount : undefined;
+		// API returns count as a string; coerce and keep only finite values.
+		const rawCount = typeof value.count === "string" ? Number(value.count) : undefined;
+		const count = typeof rawCount === "number" && Number.isFinite(rawCount) ? rawCount : undefined;
 		const isUnhandled = typeof value.isUnhandled === "boolean" ? value.isUnhandled : undefined;
 		const firstSeen = asString(value.firstSeen);
 
@@ -235,7 +238,8 @@ export async function updateIssueStatus(
 			Accept: "application/json",
 			Authorization: `Bearer ${settings.authToken.trim()}`
 		},
-		body: JSON.stringify({ status })
+		body: JSON.stringify({ status }),
+		signal: AbortSignal.timeout(10_000)
 	});
 	if (!response.ok) {
 		throw new SentryApiError(`Sentry Update Issue API returned HTTP ${response.status}`, response.status);
