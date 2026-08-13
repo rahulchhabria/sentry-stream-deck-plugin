@@ -79,7 +79,11 @@ test("parses issues and drops malformed entries", async () => {
 		title: "Boom",
 		permalink: "https://sentry.io/issues/1/",
 		status: "unresolved",
-		lastSeen: "2026-07-18T00:00:00Z"
+		lastSeen: "2026-07-18T00:00:00Z",
+		firstSeen: undefined,
+		userCount: undefined,
+		count: undefined,
+		isUnhandled: undefined
 	});
 });
 
