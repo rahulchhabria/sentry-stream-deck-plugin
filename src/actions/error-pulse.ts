@@ -7,39 +7,19 @@ import streamDeck, {
 
 import { issuePoller, type IssueSnapshot } from "../issue-poller";
 import { issueSelectionStore } from "../issue-selection-store";
-import { createKeyImage } from "../key-visual";
+import { createActionIcon, createKeyImage } from "../key-visual";
 import { getProjectIssuesUrl, type SentryIssue } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 import { LongPressAction } from "../long-press";
 import { pulseMuteStore } from "../pulse-mute";
 
 const FLASH_INTERVAL_MS = 600;
-const ERROR_BRIGHT = createKeyImage({
-	background: "#500918",
-	accent: "#ff375f",
-	label: "ERRORS"
-});
-const ERROR_DIM = createKeyImage({
-	background: "#19080d",
-	accent: "#7f1d35",
-	label: "ERRORS"
-});
+const ERROR_BRIGHT = createActionIcon("pulse", { color: "#ff375f", glow: true });
+const ERROR_DIM = createActionIcon("pulse", { color: "#ff375f" });
 // Steady (acknowledged) look: errors still present, but no longer flashing.
-const ERROR_STEADY = createKeyImage({
-	background: "#2a0c14",
-	accent: "#b52c48",
-	label: "ERRORS"
-});
-const QUIET_IMAGE = createKeyImage({
-	background: "#10241d",
-	accent: "#34d399",
-	label: "QUIET"
-});
-const MUTE_IMAGE = createKeyImage({
-	background: "#0f231d",
-	accent: "#10b981",
-	label: "MUTE"
-});
+const ERROR_STEADY = ERROR_DIM;
+const QUIET_IMAGE = createActionIcon("pulse", { color: "#34d399" });
+const MUTE_IMAGE = createActionIcon("pulse", { color: "#10b981", dimmed: true });
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.error-pulse" })
 export class ErrorPulse extends LongPressAction {

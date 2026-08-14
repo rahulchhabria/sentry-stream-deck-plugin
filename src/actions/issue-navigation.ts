@@ -9,18 +9,10 @@ import {
 
 import type { IssueSelectionSnapshot } from "../issue-selection";
 import { issueSelectionStore } from "../issue-selection-store";
-import { createKeyImage } from "../key-visual";
+import { createActionIcon } from "../key-visual";
 
-const NEXT_IMAGE = createKeyImage({
-	background: "#151b2d",
-	accent: "#60a5fa",
-	label: "NEXT"
-});
-const EMPTY_IMAGE = createKeyImage({
-	background: "#17191d",
-	accent: "#60646c",
-	label: "NO ISSUE"
-});
+const NEXT_IMAGE = createActionIcon("next", { color: "#60a5fa" });
+const EMPTY_IMAGE = createActionIcon("next", { color: "#60646c", dimmed: true });
 
 abstract class IssueNavigationAction extends SingletonAction {
 	private readonly subscriptions = new Map<string, () => void>();

@@ -9,6 +9,7 @@
         "build": "rollup -c",
         "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run validate && npm run pack:check",
         "dev:enable": "streamdeck dev",
+        "icons:build": "tsx scripts/export-key-icons.ts",
         "lint": "eslint --quiet",
         "link": "streamdeck link com.rahulchhabria.sentry-human-loop.sdPlugin",
         "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.rahulchhabria.sentry-human-loop\"",

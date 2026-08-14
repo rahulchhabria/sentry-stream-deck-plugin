@@ -7,7 +7,7 @@ import streamDeck, {
 
 import type { IssueSelectionSnapshot } from "../issue-selection";
 import { issueSelectionStore } from "../issue-selection-store";
-import { createKeyImage } from "../key-visual";
+import { createActionIcon, createKeyImage } from "../key-visual";
 import { getLatestIssueEvent, getProjectIssuesUrl } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 import { LongPressAction } from "../long-press";
@@ -134,10 +134,9 @@ export class SelectedIssue extends LongPressAction {
 					? snapshot.source.statusCode === 429 ? "RATE" : "STALE"
 					: String(heat)
 			),
-			key.setImage(createKeyImage({
-				background: "#21113d",
-				accent,
-				label: issue.shortId
+			key.setImage(createActionIcon("this", {
+				color: accent,
+				glow: Boolean(issue.isUnhandled)
 			}))
 		]);
 	}

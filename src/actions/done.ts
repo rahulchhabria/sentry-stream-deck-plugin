@@ -6,17 +6,17 @@ import {
 } from "@elgato/streamdeck";
 
 import { issueSelectionStore } from "../issue-selection-store";
-import { createKeyImage } from "../key-visual";
+import { createActionIcon } from "../key-visual";
 import { updateIssueStatus } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 import { LongPressAction } from "../long-press";
 
 const IMAGES = {
-	idle: createKeyImage({ background: "#10211a", accent: "#34d399", label: "DONE" }),
-	ok: createKeyImage({ background: "#0f2a1f", accent: "#34d399", label: "OK" }),
-	fail: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "FAIL" }),
-	auth: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "AUTH" }),
-	none: createKeyImage({ background: "#17191d", accent: "#60646c", label: "NO ISSUE" })
+	idle: createActionIcon("done", { color: "#34d399" }),
+	ok: createActionIcon("done", { color: "#34d399", glow: true }),
+	fail: createActionIcon("done", { color: "#f59e0b", glow: true }),
+	auth: createActionIcon("done", { color: "#f59e0b", dimmed: true }),
+	none: createActionIcon("done", { color: "#60646c", dimmed: true })
 };
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.done" })

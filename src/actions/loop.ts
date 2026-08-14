@@ -9,18 +9,18 @@ import streamDeck, {
 
 import { agentHandoffManager } from "../agent-handoff-manager";
 import { issueSelectionStore } from "../issue-selection-store";
-import { createKeyImage } from "../key-visual";
+import { createActionIcon } from "../key-visual";
 import { detectPrStatus, type LoopStatus } from "../pr-status";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 
 const IMAGES = {
-	idle: createKeyImage({ background: "#0f1f1b", accent: "#60a5fa", label: "LOOP" }),
-	sent: createKeyImage({ background: "#10241d", accent: "#34d399", label: "SENT" }),
-	draft: createKeyImage({ background: "#1b1730", accent: "#a78bfa", label: "DRAFT" }),
-	ci: createKeyImage({ background: "#162b3b", accent: "#93c5fd", label: "CI" }),
-	fail: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "FAIL" }),
-	merged: createKeyImage({ background: "#0f2a1f", accent: "#34d399", label: "MERGED" }),
-	error: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "CONFIG" })
+	idle: createActionIcon("loop", { color: "#38bdf8" }),
+	sent: createActionIcon("loop", { color: "#34d399" }),
+	draft: createActionIcon("loop", { color: "#a78bfa", glow: true }),
+	ci: createActionIcon("loop", { color: "#38bdf8", glow: true }),
+	fail: createActionIcon("loop", { color: "#f59e0b", glow: true }),
+	merged: createActionIcon("loop", { color: "#34d399", glow: true }),
+	error: createActionIcon("loop", { color: "#f59e0b", dimmed: true })
 };
 
 type LastHandoff = {
@@ -134,4 +134,3 @@ export class LoopStatusAction extends SingletonAction {
 		}
 	}
 }
-

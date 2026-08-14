@@ -6,7 +6,7 @@ import {
 } from "@elgato/streamdeck";
 
 import { issueSelectionStore } from "../issue-selection-store";
-import { createKeyImage } from "../key-visual";
+import { createActionIcon, createKeyImage } from "../key-visual";
 import { agentHandoffManager } from "../agent-handoff-manager";
 import { getSentrySettings } from "../settings";
 import { LongPressAction } from "../long-press";
@@ -15,10 +15,10 @@ const IMAGES = {
 	setup: createKeyImage({ background: "#201a2c", accent: "#8b7aa8", label: "CONFIG" }),
 	none: createKeyImage({ background: "#17191d", accent: "#60646c", label: "NO ISSUE" }),
 	repository: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "SET REPO" }),
-	idle: createKeyImage({ background: "#12222e", accent: "#60a5fa", label: "SEND" }),
-	running: createKeyImage({ background: "#162b3b", accent: "#93c5fd", label: "RUN" }),
-	sent: createKeyImage({ background: "#10241d", accent: "#34d399", label: "SENT" }),
-	error: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "FAIL" })
+	idle: createActionIcon("send", { color: "#ff3d9a" }),
+	running: createActionIcon("send", { color: "#ff3d9a", glow: true }),
+	sent: createActionIcon("send", { color: "#34d399", glow: true }),
+	error: createActionIcon("send", { color: "#f59e0b", glow: true })
 };
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.send-to-agent" })
