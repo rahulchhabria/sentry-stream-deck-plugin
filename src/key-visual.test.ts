@@ -30,6 +30,13 @@ test("renders labels and optional values inside the icon", () => {
 	assert.match(svg, /y="271"/);
 });
 
+test("uses one consistent stroke across outlined action icons", () => {
+	for (const name of ["inspect", "next", "agent", "pr", "resolve"] as const) {
+		const svg = createActionIconSvg(name, { color: "#fff" });
+		assert.match(svg, /stroke-width="16"/);
+	}
+});
+
 test("encodes action icons as SVG data URIs", () => {
 	const uri = createActionIcon("resolve", { color: "#34d399", glow: true });
 	assert.match(uri, /^data:image\/svg\+xml;base64,/);

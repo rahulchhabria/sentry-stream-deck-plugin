@@ -69,8 +69,9 @@ export function createActionIconSvg(name: ActionIconName, options: ActionIconOpt
 	const opacity = options.dimmed ? ".42" : "1";
 	const label = escapeXml(options.label ?? ACTION_LABELS[name]);
 	const value = options.value?.trim() ? escapeXml(options.value.trim()) : undefined;
+	const strokeWidth = 16;
 	const renderGlyph = (glyphColor: string, attributes = ""): string => [
-		`<g fill="none" stroke="${glyphColor}" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" transform="translate(31 -16) scale(.78)" ${attributes}>`,
+		`<g fill="none" stroke="${glyphColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" transform="translate(31 -16) scale(.78)" ${attributes}>`,
 		ACTION_GLYPHS[name].replaceAll("currentColor", glyphColor),
 		"</g>"
 	].join("");
