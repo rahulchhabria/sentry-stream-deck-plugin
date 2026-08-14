@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import path from "node:path";
 
 export type SentryPlanCommand = {
 	executable: string;
@@ -15,6 +16,10 @@ export type ProcessExecutor = (
 
 const PLAN_TIMEOUT_MS = 5 * 60_000;
 const MAX_OUTPUT_BYTES = 2 * 1024 * 1024;
+const ANSI_ESCAPE_SEQUENCE = new RegExp(
+	`${String.fromCodePoint(27)}\\[[0-?]*[ -/]*[@-~]`,
+	"g"
+);
 
 /** Runs Seer's read-only planning command for one stable issue id. */
 export async function runSentryPlan(
@@ -27,6 +32,9 @@ export async function runSentryPlan(
 	const issueShortId = command.issueShortId.trim();
 	if (!executable || !repositoryPath || !organizationSlug || !issueShortId) {
 		throw new Error("Sentry plan command is missing required configuration");
+	}
+	if (!path.isAbsolute(repositoryPath)) {
+		throw new Error("Sentry plan repository must be an absolute path");
 	}
 
 	const { stdout, stderr } = await execute(
@@ -63,5 +71,5 @@ function executeFile(
 }
 
 function stripAnsi(value: string): string {
-	return value.replaceAll(/\x1B\[[0-?]*[ -/]*[@-~]/g, "");
+	return value.replaceAll(ANSI_ESCAPE_SEQUENCE, "");
 }

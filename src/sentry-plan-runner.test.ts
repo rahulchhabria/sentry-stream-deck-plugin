@@ -57,3 +57,15 @@ test("requires an explicit repository path", async () => {
 		/missing required configuration/
 	);
 });
+
+test("rejects a relative repository path", async () => {
+	await assert.rejects(
+		runSentryPlan({
+			executable: "sentry",
+			repositoryPath: "relative/repository",
+			organizationSlug: "acme",
+			issueShortId: "WEB-ABC"
+		}),
+		/must be an absolute path/
+	);
+});

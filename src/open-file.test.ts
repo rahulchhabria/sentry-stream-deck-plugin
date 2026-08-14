@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { test } from "node:test";
 import { openInEditorOrSystem, type FileOpenLauncher } from "./open-file";
 
 const noop: FileOpenLauncher = async () => {};
@@ -34,4 +35,3 @@ test("rejects absolute paths", async () => {
 		assert.equal(ok, false);
 	});
 });
-

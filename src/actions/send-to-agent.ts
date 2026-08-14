@@ -1,4 +1,4 @@
-import streamDeck, {
+import {
 	action,
 	type KeyAction,
 	type WillAppearEvent,
@@ -138,4 +138,3 @@ export class SendToAgent extends LongPressAction {
 		this.subscriptions.delete(actionId);
 	}
 }
-

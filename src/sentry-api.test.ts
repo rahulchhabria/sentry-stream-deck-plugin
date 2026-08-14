@@ -164,6 +164,21 @@ test("stops after the bounded retry limit", async () => {
 	assert.equal(calls.length, 2);
 });
 
+test("reports the underlying network failure after retries are exhausted", async () => {
+	const makeError = () => new TypeError("fetch failed", {
+		cause: Object.assign(new Error("getaddrinfo ENOTFOUND sentry.io"), {
+			code: "ENOTFOUND"
+		})
+	});
+	const { calls } = stubFetchSequence([makeError(), makeError()]);
+
+	await assert.rejects(
+		getUnresolvedIssues(settings()),
+		/Sentry Issues API request failed: fetch failed \(ENOTFOUND: getaddrinfo ENOTFOUND sentry\.io\)/
+	);
+	assert.equal(calls.length, 2);
+});
+
 test("throws when the body is not an array", async () => {
 	stubFetch(new Response(JSON.stringify({ detail: "unexpected" })));
 

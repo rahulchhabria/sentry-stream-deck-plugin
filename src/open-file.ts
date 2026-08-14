@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
-import { join, resolve, relative, isAbsolute, sep } from "node:path";
+import { resolve, relative, isAbsolute, sep } from "node:path";
 
 export type FileOpenLauncher = (
 	executable: string,
@@ -77,4 +77,3 @@ export async function openInEditorOrSystem(
 		}
 	}
 }
-

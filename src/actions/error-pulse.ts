@@ -110,7 +110,7 @@ export class ErrorPulse extends LongPressAction {
 		await streamDeck.system.openUrl(getProjectIssuesUrl(settings));
 	}
 
-	protected override async onLongPress(_action: KeyAction): Promise<void> {
+	protected override async onLongPress(): Promise<void> {
 		// Toggle mute state for the session.
 		pulseMuteStore.toggle();
 	}
@@ -206,6 +206,9 @@ export class ErrorPulse extends LongPressAction {
 
 		let bright = true;
 		const timer = setInterval(() => {
+			if (this.flashTimers.get(key.id) !== timer || !this.alerting.has(key.id)) {
+				return;
+			}
 			bright = !bright;
 			void key.setImage(bright ? ERROR_BRIGHT : ERROR_DIM).catch((error: unknown) => {
 				const message = error instanceof Error ? error.message : "Unknown error";

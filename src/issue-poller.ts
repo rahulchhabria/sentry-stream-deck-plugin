@@ -2,7 +2,12 @@ import streamDeck from "@elgato/streamdeck";
 
 import { NewIssueTracker } from "./new-issue-tracker";
 import { getUnresolvedIssues, SentryApiError, type SentryIssue } from "./sentry-api";
-import { getSentryBaseUrl, getSentrySettings, hasRequiredSettings } from "./settings";
+import {
+	type ConfiguredSentrySettings,
+	getSentryBaseUrl,
+	getSentrySettings,
+	hasRequiredSettings
+} from "./settings";
 
 const POLL_INTERVAL_MS = 15_000;
 
@@ -38,6 +43,7 @@ class IssuePoller {
 	private timer?: ReturnType<typeof setInterval>;
 	private refreshPromise?: Promise<void>;
 	private refreshRequested = false;
+	private settingsRevision = 0;
 	private lastSuccessfulPage?: Pick<Extract<IssueSnapshot, { status: "ready" }>, "issues" | "hasMore">;
 
 	/** Detects genuinely new issues rather than re-alerting on the whole backlog. */
@@ -48,7 +54,18 @@ class IssuePoller {
 	constructor() {
 		// Fires only on property-inspector updates (see useExperimentalMessageIdentifiers
 		// in plugin.ts), so requesting settings during a refresh does not loop.
-		streamDeck.settings.onDidReceiveGlobalSettings(() => {
+		streamDeck.settings.onDidReceiveGlobalSettings((event) => {
+			// Invalidate any request that started with older settings. If the Sentry
+			// target changed, also hide the cached queue immediately so an action can
+			// never open an issue from the previous project while the new poll runs.
+			this.settingsRevision += 1;
+			const nextConnectionKey = hasRequiredSettings(event.settings)
+				? this.getConnectionKey(event.settings)
+				: undefined;
+			if (nextConnectionKey !== this.connectionKey) {
+				this.resetBaseline(undefined);
+				this.publish({ status: "unconfigured", issues: [] });
+			}
 			if (this.subscribers.size > 0) {
 				void this.refresh(true);
 			}
@@ -90,8 +107,12 @@ class IssuePoller {
 	}
 
 	private async performRefresh(): Promise<void> {
+		const settingsRevision = this.settingsRevision;
 		try {
 			const settings = await getSentrySettings();
+			if (settingsRevision !== this.settingsRevision) {
+				return;
+			}
 			if (!hasRequiredSettings(settings)) {
 				this.resetBaseline(undefined);
 				this.publish({ status: "unconfigured", issues: [] });
@@ -100,21 +121,23 @@ class IssuePoller {
 
 			// Re-baseline when the target instance/org/project changes so we do
 			// not carry a previous project's "seen" ids into a new one.
-			const connectionKey = [
-				getSentryBaseUrl(settings),
-				settings.organizationSlug.trim(),
-				settings.projectSlug.trim()
-			].join("|");
+			const connectionKey = this.getConnectionKey(settings);
 			if (connectionKey !== this.connectionKey) {
 				this.resetBaseline(connectionKey);
 			}
 
 			const { issues, hasMore } = await getUnresolvedIssues(settings);
+			if (settingsRevision !== this.settingsRevision) {
+				return;
+			}
 			const newIssues = this.newIssueTracker.observe(issues);
 
 			this.lastSuccessfulPage = { issues, hasMore };
 			this.publish({ status: "ready", issues, newIssues, hasMore });
 		} catch (error) {
+			if (settingsRevision !== this.settingsRevision) {
+				return;
+			}
 			const message = error instanceof Error ? error.message : "Unknown error";
 			const statusCode = error instanceof SentryApiError ? error.status : undefined;
 			streamDeck.logger.error(`Shared Sentry issue refresh failed: ${message}`);
@@ -130,6 +153,14 @@ class IssuePoller {
 			}
 			this.publish({ status: "error", issues: [], message, statusCode });
 		}
+	}
+
+	private getConnectionKey(settings: ConfiguredSentrySettings): string {
+		return [
+			getSentryBaseUrl(settings),
+			settings.organizationSlug.trim(),
+			settings.projectSlug.trim()
+		].join("|");
 	}
 
 	private resetBaseline(connectionKey: string | undefined): void {

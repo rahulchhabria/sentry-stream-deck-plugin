@@ -80,7 +80,7 @@ export class SelectedIssue extends LongPressAction {
 		await streamDeck.system.openUrl(getProjectIssuesUrl(settings));
 	}
 
-	protected override async onLongPress(_action: KeyAction): Promise<void> {
+	protected override async onLongPress(): Promise<void> {
 		issueSelectionStore.next();
 	}
 

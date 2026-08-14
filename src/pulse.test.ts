@@ -33,7 +33,7 @@ test("Pulse selects the newest of the new issues instead of issues[0]", () => {
 });
 
 test("mute store toggles and notifies", async () => {
-	let state = pulseMuteStore.isMuted();
+	const state = pulseMuteStore.isMuted();
 	let notified: boolean | undefined;
 	const unsub = pulseMuteStore.subscribe((m) => { notified = m; });
 	try {
@@ -48,4 +48,3 @@ test("mute store toggles and notifies", async () => {
 		pulseMuteStore.set(false);
 	}
 });
-

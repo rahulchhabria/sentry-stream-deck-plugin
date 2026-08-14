@@ -32,30 +32,35 @@ test("reports error when repository path is missing", async () => {
 
 test("second start while running is a no-op (busy)", async () => {
 	let launches = 0;
-	const slowLauncher = async (_cmd?: unknown, _repo?: string) => {
+	let releaseLauncher = () => {};
+	let reportLaunchStarted = () => {};
+	const launcherBlocked = new Promise<void>((resolve) => { releaseLauncher = resolve; });
+	const launchStarted = new Promise<void>((resolve) => { reportLaunchStarted = resolve; });
+	const slowLauncher = async () => {
 		launches += 1;
-		await new Promise((r) => setTimeout(r, 50));
+		reportLaunchStarted();
+		await launcherBlocked;
 	};
 	const unsubscribe = agentHandoffManager.subscribe(() => {});
+	let firstStart: Promise<void> | undefined;
 	try {
-		// Kick off a slow launch and immediately attempt a second one.
-		void agentHandoffManager.start(issue, {
+		firstStart = agentHandoffManager.start(issue, {
 			organizationSlug: "acme",
 			projectSlug: "web",
 			repositoryPath: "/repo",
 			agentCliPath: "agent"
 		}, undefined, slowLauncher);
+		await launchStarted;
 		await agentHandoffManager.start(issue, {
 			organizationSlug: "acme",
 			projectSlug: "web",
 			repositoryPath: "/repo",
 			agentCliPath: "agent"
 		}, undefined, slowLauncher);
-		// Allow the first launch to progress.
-		await new Promise((r) => setTimeout(r, 10));
 		assert.equal(launches, 1, "should not start a second launch while running");
 	} finally {
+		releaseLauncher();
+		await firstStart;
 		unsubscribe();
 	}
 });
-

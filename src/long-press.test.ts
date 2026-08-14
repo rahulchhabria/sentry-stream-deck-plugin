@@ -7,8 +7,8 @@ class ProbeAction extends LongPressAction {
 	short = 0;
 	long = 0;
 	constructor() { super(50); } // small threshold for test
-	protected async onShortPress(_action: KeyAction): Promise<void> { this.short += 1; }
-	protected async onLongPress(_action: KeyAction): Promise<void> { this.long += 1; }
+	protected async onShortPress(): Promise<void> { this.short += 1; }
+	protected async onLongPress(): Promise<void> { this.long += 1; }
 }
 
 const fakeKey = { id: "k1", isKey: () => true, setImage: async () => {}, setTitle: async () => {} } as unknown as KeyAction;
@@ -35,4 +35,3 @@ test("fires short vs long depending on hold duration", async () => {
 	assert.equal(a.short, 1);
 	assert.equal(a.long, 1);
 });
-

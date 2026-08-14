@@ -7,18 +7,24 @@
     },
     "scripts": {
         "build": "rollup -c",
-		"link": "streamdeck link com.rahulchhabria.sentry-human-loop.sdPlugin",
+        "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run validate && npm run pack:check",
+        "dev:enable": "streamdeck dev",
+        "lint": "eslint --quiet",
+        "link": "streamdeck link com.rahulchhabria.sentry-human-loop.sdPlugin",
         "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.rahulchhabria.sentry-human-loop\"",
         "validate": "streamdeck validate com.rahulchhabria.sentry-human-loop.sdPlugin",
-		"pack:check": "streamdeck pack --dry-run --force com.rahulchhabria.sentry-human-loop.sdPlugin",
+        "pack:check": "streamdeck pack --dry-run --force com.rahulchhabria.sentry-human-loop.sdPlugin",
         "pack": "streamdeck pack --force com.rahulchhabria.sentry-human-loop.sdPlugin",
         "test": "node --import tsx --test 'src/**/*.test.ts'",
         "typecheck": "tsc --noEmit -p tsconfig.test.json",
         "sim": "tsx scripts/simulate.ts"
     },
     "type": "module",
+    "prettier": "@elgato/prettier-config",
     "devDependencies": {
-        "@elgato/cli": "^1.7.4",
+        "@elgato/cli": "^1.8.0",
+        "@elgato/eslint-config": "^0.3.2",
+        "@elgato/prettier-config": "^0.3.3",
         "@rollup/plugin-commonjs": "^29.0.2",
         "@rollup/plugin-node-resolve": "^15.2.2",
         "@rollup/plugin-terser": "^1.0.0",
@@ -31,7 +37,7 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
-        "@elgato/streamdeck": "^2.0.0"
+        "@elgato/streamdeck": "^2.1.1"
     },
     "allowScripts": {
         "esbuild@0.28.1": true

@@ -110,9 +110,21 @@ plugin never auto-launches an agent when flashing.
 
 ## Develop
 
+Install and verify Elgato's official Stream Deck CLI:
+
+```sh
+npm install -g @elgato/cli@latest
+streamdeck -v
+```
+
+Then install the project and link the compiled plugin. The Property Inspector
+UI library is bundled locally, so settings continue to work without internet
+access.
+
 ```sh
 nvm use
-npm install
+npm ci
+npm run dev:enable
 npm run link    # link the compiled plugin directory into Stream Deck
 npm run watch   # rebuilds and restarts the linked plugin on every change
 ```
@@ -130,12 +142,19 @@ npm run pack:check
 ```sh
 npm test        # node --test suite (poller diff, settings, Sentry API, handoff)
 npm run typecheck
+npm run lint     # Elgato's recommended ESLint configuration
 npm run sim      # opens an interactive browser simulator of the key states
 ```
 
 `npm run sim` renders the Error Pulse visuals and lets you exercise the flash /
 acknowledge / clear / error behaviour without a physical device. Selection and
 Agent Plan behavior is covered by the Node test suite.
+
+Run every automated build and packaging gate with:
+
+```sh
+npm run check
+```
 
 ## Package
 
@@ -156,7 +175,7 @@ Upload that file at <https://marketplace.elgato.com/maker>.
       screenshot(s) of the key in action, support URL.
 - [ ] Bump `Version` in `manifest.json` (4-part, e.g. `0.1.1.0`) and the
       `package.json` `version` on each release.
-- [ ] Run the full gate: `npm run typecheck && npm test && npm run build && npm run validate && npm run pack`.
+- [ ] Run the full gate: `npm run check`, then `npm run pack` for the release artifact.
 
 ### Renaming the plugin UUID
 

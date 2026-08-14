@@ -54,9 +54,10 @@ export type SentryEvent = {
 export class SentryApiError extends Error {
 	constructor(
 		message: string,
-		readonly status?: number
+		readonly status?: number,
+		options?: ErrorOptions
 	) {
-		super(message);
+		super(message, options);
 		this.name = "SentryApiError";
 	}
 }
@@ -108,7 +109,11 @@ async function fetchIssuePage(url: string, authToken: string): Promise<Response>
 				await delay(RETRY_DELAY_MS);
 				continue;
 			}
-			throw error;
+			throw new SentryApiError(
+				describeRequestFailure(error),
+				undefined,
+				{ cause: error }
+			);
 		}
 
 		if (response.ok) {
@@ -127,6 +132,21 @@ async function fetchIssuePage(url: string, authToken: string): Promise<Response>
 	}
 
 	throw new SentryApiError("Sentry Issues API retry limit reached");
+}
+
+function describeRequestFailure(error: unknown): string {
+	const message = error instanceof Error ? error.message : String(error);
+	const cause = error instanceof Error ? error.cause : undefined;
+	if (!isRecord(cause)) {
+		return `Sentry Issues API request failed: ${message}`;
+	}
+
+	const causeMessage = asString(cause.message);
+	const causeCode = asString(cause.code);
+	const details = [causeCode, causeMessage]
+		.filter((value): value is string => Boolean(value))
+		.join(": ");
+	return `Sentry Issues API request failed: ${message}${details ? ` (${details})` : ""}`;
 }
 
 function delay(milliseconds: number): Promise<void> {
