@@ -11,15 +11,11 @@ import type { IssueSelectionSnapshot } from "../issue-selection";
 import { issueSelectionStore } from "../issue-selection-store";
 import { createActionIcon } from "../key-visual";
 
-const NEXT_IMAGE = createActionIcon("next", { color: "#60a5fa" });
-const EMPTY_IMAGE = createActionIcon("next", { color: "#60646c", dimmed: true });
-
 abstract class IssueNavigationAction extends SingletonAction {
 	private readonly subscriptions = new Map<string, () => void>();
 
 	constructor(
-		private readonly direction: "previous" | "next",
-		private readonly image: string
+		private readonly direction: "previous" | "next"
 	) {
 		super();
 	}
@@ -61,10 +57,15 @@ abstract class IssueNavigationAction extends SingletonAction {
 				(snapshot.source.status === "ready" || snapshot.source.status === "stale")
 					&& snapshot.source.hasMore ? "+" : ""
 			}${snapshot.source.status === "stale" ? "!" : ""}`
-			: snapshot.source.status === "stale" ? "STALE" : "";
+			: snapshot.source.status === "stale" ? "STALE" : "NEXT";
 		await Promise.all([
-			key.setTitle(position),
-			key.setImage(hasIssue ? this.image : EMPTY_IMAGE)
+			key.setTitle(""),
+			key.setImage(createActionIcon("next", {
+				color: hasIssue ? "#60a5fa" : "#60646c",
+				dimmed: !hasIssue,
+				label: !hasIssue && snapshot.source.status === "stale" ? "STALE" : undefined,
+				value: hasIssue ? position : undefined
+			}))
 		]);
 	}
 
@@ -77,6 +78,6 @@ abstract class IssueNavigationAction extends SingletonAction {
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.next-issue" })
 export class NextIssue extends IssueNavigationAction {
 	constructor() {
-		super("next", NEXT_IMAGE);
+		super("next");
 	}
 }

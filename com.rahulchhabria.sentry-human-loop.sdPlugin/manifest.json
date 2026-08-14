@@ -16,16 +16,15 @@
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 18
+					"ShowTitle": false
 				}
 			]
 		},
 		{
-			"Name": "This Issue",
+			"Name": "Inspect Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Shows the selected issue. Short press opens culprit file (best-effort) or Sentry. Long press selects next.",
+			"Tooltip": "Inspects the selected issue. Short press opens the culprit file in your IDE (best-effort) or Sentry. Long press selects next.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -33,8 +32,7 @@
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 13
+					"ShowTitle": false
 				}
 			]
 		},
@@ -50,13 +48,12 @@
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 13
+					"ShowTitle": false
 				}
 			]
 		},
 		{
-			"Name": "Send to Agent",
+			"Name": "Agent",
 			"UUID": "com.rahulchhabria.sentry-human-loop.send-to-agent",
 			"Icon": "imgs/actions/counter/icon",
 			"Tooltip": "Sends the selected issue to your local coding agent via CLI. Long press explicitly asks for a draft PR.",
@@ -67,16 +64,15 @@
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 13
+					"ShowTitle": false
 				}
 			]
 		},
 		{
-			"Name": "Loop",
+			"Name": "View PR",
 			"UUID": "com.rahulchhabria.sentry-human-loop.loop",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Shows follow-up status after SEND: DRAFT, CI, FAIL, MERGED, or SENT when no PR is found.",
+			"Tooltip": "Shows follow-up status after an AGENT handoff: DRAFT, CI, FAIL, MERGED, or SENT when no PR is found.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -84,13 +80,12 @@
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 13
+					"ShowTitle": false
 				}
 			]
 		},
 		{
-			"Name": "Done",
+			"Name": "Resolve",
 			"UUID": "com.rahulchhabria.sentry-human-loop.done",
 			"Icon": "imgs/actions/counter/icon",
 			"Tooltip": "Resolve (short) or archive (long) the selected issue via Sentry API. Requires event:write.",
@@ -101,8 +96,7 @@
 			"States": [
 				{
 					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "bottom",
-					"FontSize": 13
+					"ShowTitle": false
 				}
 			]
 		}
@@ -110,7 +104,7 @@
 	"Category": "Sentry",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
-	"Description": "A 6-key human-in-the-loop pipeline for Sentry on a Stream Deck: PULSE / THIS / NEXT / SEND / LOOP / DONE. Navigate highest-pain issues, hand off to a local agent, follow draft PR status, and resolve/archive.",
+	"Description": "A 6-key human-in-the-loop pipeline for Sentry on a Stream Deck: NEW ISSUE / INSPECT / NEXT / AGENT / VIEW PR / RESOLVE. Navigate highest-pain issues, hand off to a local agent, follow draft PR status, and resolve/archive.",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {

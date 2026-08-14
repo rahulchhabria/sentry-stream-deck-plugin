@@ -14,13 +14,13 @@ import { detectPrStatus, type LoopStatus } from "../pr-status";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 
 const IMAGES = {
-	idle: createActionIcon("loop", { color: "#38bdf8" }),
-	sent: createActionIcon("loop", { color: "#34d399" }),
-	draft: createActionIcon("loop", { color: "#a78bfa", glow: true }),
-	ci: createActionIcon("loop", { color: "#38bdf8", glow: true }),
-	fail: createActionIcon("loop", { color: "#f59e0b", glow: true }),
-	merged: createActionIcon("loop", { color: "#34d399", glow: true }),
-	error: createActionIcon("loop", { color: "#f59e0b", dimmed: true })
+	idle: createActionIcon("pr", { color: "#38bdf8" }),
+	sent: createActionIcon("pr", { color: "#34d399", label: "SENT" }),
+	draft: createActionIcon("pr", { color: "#a78bfa", glow: true, label: "DRAFT" }),
+	ci: createActionIcon("pr", { color: "#38bdf8", glow: true, label: "CI" }),
+	fail: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "FAIL" }),
+	merged: createActionIcon("pr", { color: "#34d399", glow: true, label: "MERGED" }),
+	error: createActionIcon("pr", { color: "#f59e0b", dimmed: true, label: "SETUP" })
 };
 
 type LastHandoff = {
@@ -91,7 +91,7 @@ export class LoopStatusAction extends SingletonAction {
 		const settings = await getSentrySettings();
 		const last = this.lastHandoff.get(key.id);
 		if (!last) {
-			await Promise.all([key.setTitle("—"), key.setImage(IMAGES.idle)]);
+			await Promise.all([key.setTitle(""), key.setImage(IMAGES.idle)]);
 			return;
 		}
 		if (!hasRequiredSettings(settings) || !settings.repositoryPath?.trim()) {

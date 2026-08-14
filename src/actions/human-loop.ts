@@ -7,7 +7,7 @@ import streamDeck, {
 
 import type { IssueSelectionSnapshot } from "../issue-selection";
 import { issueSelectionStore } from "../issue-selection-store";
-import { createActionIcon, createKeyImage } from "../key-visual";
+import { createActionIcon } from "../key-visual";
 import { getLatestIssueEvent, getProjectIssuesUrl } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 import { LongPressAction } from "../long-press";
@@ -87,12 +87,8 @@ export class SelectedIssue extends LongPressAction {
 	private async render(key: KeyAction, snapshot: IssueSelectionSnapshot): Promise<void> {
 		if (snapshot.source.status === "unconfigured") {
 			await Promise.all([
-				key.setTitle("SETUP"),
-				key.setImage(createKeyImage({
-					background: "#201a2c",
-					accent: "#8b7aa8",
-					label: "CONFIG"
-				}))
+				key.setTitle(""),
+				key.setImage(createActionIcon("inspect", { color: "#8b7aa8", dimmed: true, label: "SETUP" }))
 			]);
 			return;
 		}
@@ -100,13 +96,10 @@ export class SelectedIssue extends LongPressAction {
 		if (snapshot.source.status === "error") {
 			const isAuth = snapshot.source.statusCode === 401 || snapshot.source.statusCode === 403;
 			const isRate = snapshot.source.statusCode === 429;
+			const label = isAuth ? "AUTH" : isRate ? "RATE" : "API ERR";
 			await Promise.all([
-				key.setTitle(isAuth ? "AUTH" : isRate ? "RATE" : "API ERR"),
-				key.setImage(createKeyImage({
-					background: "#2c1d08",
-					accent: "#f59e0b",
-					label: isAuth ? "CHECK KEY" : isRate ? "SLOW DOWN" : "RETRY"
-				}))
+				key.setTitle(""),
+				key.setImage(createActionIcon("inspect", { color: "#f59e0b", glow: true, label }))
 			]);
 			return;
 		}
@@ -114,29 +107,26 @@ export class SelectedIssue extends LongPressAction {
 		const issue = snapshot.selectedIssue;
 		if (!issue) {
 			await Promise.all([
-				key.setTitle("NONE"),
-				key.setImage(createKeyImage({
-					background: "#101d2b",
-					accent: "#60a5fa",
-					label: "NO REVIEW"
-				}))
+				key.setTitle(""),
+				key.setImage(createActionIcon("inspect", { color: "#60646c", dimmed: true }))
 			]);
 			return;
 		}
 
 		// Compact heat hint in the title: prefer userCount, else total count.
-		const heat = issue.userCount ?? issue.count ?? "";
+		const heat = positiveCount(issue.userCount) ?? positiveCount(issue.count);
 		// Amber-ish accent for suspected regressions / unhandled issues.
 		const accent = issue.isUnhandled ? "#f59e0b" : "#a78bfa";
+		const staleLabel = snapshot.source.status === "stale"
+			? snapshot.source.statusCode === 429 ? "RATE" : "STALE"
+			: undefined;
 		await Promise.all([
-			key.setTitle(
-				snapshot.source.status === "stale"
-					? snapshot.source.statusCode === 429 ? "RATE" : "STALE"
-					: String(heat)
-			),
-			key.setImage(createActionIcon("this", {
+			key.setTitle(""),
+			key.setImage(createActionIcon("inspect", {
 				color: accent,
-				glow: Boolean(issue.isUnhandled)
+				glow: Boolean(issue.isUnhandled),
+				label: staleLabel,
+				value: staleLabel ? undefined : heat
 			}))
 		]);
 	}
@@ -145,6 +135,10 @@ export class SelectedIssue extends LongPressAction {
 		this.subscriptions.get(actionId)?.();
 		this.subscriptions.delete(actionId);
 	}
+}
+
+function positiveCount(value: number | undefined): string | undefined {
+	return typeof value === "number" && value > 0 ? String(value) : undefined;
 }
 
 function pickBestFrame(event: Awaited<ReturnType<typeof getLatestIssueEvent>>): {

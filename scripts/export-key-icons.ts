@@ -8,11 +8,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const output = join(root, "assets", "streamdeck-icons");
 const icons: Array<{ name: ActionIconName; color: string }> = [
 	{ name: "pulse", color: "#ff375f" },
-	{ name: "this", color: "#a78bfa" },
+	{ name: "inspect", color: "#a78bfa" },
 	{ name: "next", color: "#60a5fa" },
-	{ name: "send", color: "#ff3d9a" },
-	{ name: "loop", color: "#38bdf8" },
-	{ name: "done", color: "#34d399" }
+	{ name: "agent", color: "#ff3d9a" },
+	{ name: "pr", color: "#38bdf8" },
+	{ name: "resolve", color: "#34d399" }
 ];
 
 await mkdir(output, { recursive: true });

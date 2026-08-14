@@ -7,7 +7,7 @@ import streamDeck, {
 
 import { issuePoller, type IssueSnapshot } from "../issue-poller";
 import { issueSelectionStore } from "../issue-selection-store";
-import { createActionIcon, createKeyImage } from "../key-visual";
+import { createActionIcon } from "../key-visual";
 import { getProjectIssuesUrl, type SentryIssue } from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
 import { LongPressAction } from "../long-press";
@@ -19,7 +19,6 @@ const ERROR_DIM = createActionIcon("pulse", { color: "#ff375f" });
 // Steady (acknowledged) look: errors still present, but no longer flashing.
 const ERROR_STEADY = ERROR_DIM;
 const QUIET_IMAGE = createActionIcon("pulse", { color: "#34d399" });
-const MUTE_IMAGE = createActionIcon("pulse", { color: "#10b981", dimmed: true });
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.error-pulse" })
 export class ErrorPulse extends LongPressAction {
@@ -101,12 +100,8 @@ export class ErrorPulse extends LongPressAction {
 		if (snapshot.status === "unconfigured") {
 			this.clearKeyState(key.id);
 			await Promise.all([
-				key.setTitle("SETUP"),
-				key.setImage(createKeyImage({
-					background: "#271a1c",
-					accent: "#8b6f73",
-					label: "CONFIG"
-				}))
+				key.setTitle(""),
+				key.setImage(createActionIcon("pulse", { color: "#8b6f73", dimmed: true, label: "SETUP" }))
 			]);
 			return;
 		}
@@ -115,13 +110,10 @@ export class ErrorPulse extends LongPressAction {
 			this.clearKeyState(key.id);
 			const isAuth = snapshot.statusCode === 401 || snapshot.statusCode === 403;
 			const isRate = snapshot.statusCode === 429;
+			const label = isAuth ? "AUTH" : isRate ? "RATE" : "API ERR";
 			await Promise.all([
-				key.setTitle(isAuth ? "AUTH" : isRate ? "RATE" : "API ERR"),
-				key.setImage(createKeyImage({
-					background: "#2c1d08",
-					accent: "#f59e0b",
-					label: isAuth ? "CHECK KEY" : isRate ? "SLOW DOWN" : "RETRY"
-				}))
+				key.setTitle(""),
+				key.setImage(createActionIcon("pulse", { color: "#f59e0b", glow: true, label }))
 			]);
 			return;
 		}
@@ -130,13 +122,10 @@ export class ErrorPulse extends LongPressAction {
 		if (!issue) {
 			this.clearKeyState(key.id);
 			if (snapshot.status === "stale") {
+				const label = snapshot.statusCode === 429 ? "RATE" : "STALE";
 				await Promise.all([
-					key.setTitle(snapshot.statusCode === 429 ? "RATE" : "STALE"),
-					key.setImage(createKeyImage({
-						background: "#2c1d08",
-						accent: "#f59e0b",
-						label: "RETRY"
-					}))
+					key.setTitle(""),
+					key.setImage(createActionIcon("pulse", { color: "#f59e0b", dimmed: true, label }))
 				]);
 				return;
 			}
@@ -152,7 +141,10 @@ export class ErrorPulse extends LongPressAction {
 		// While muted: never flash; show MUTE.
 		if (pulseMuteStore.isMuted()) {
 			this.stopFlashing(key.id);
-			await Promise.all([key.setTitle(""), key.setImage(MUTE_IMAGE)]);
+			await Promise.all([
+				key.setTitle(""),
+				key.setImage(createActionIcon("pulse", { color: "#10b981", dimmed: true, label: "MUTE" }))
+			]);
 			return;
 		}
 
@@ -160,22 +152,22 @@ export class ErrorPulse extends LongPressAction {
 			// Alerting: flash until the user acknowledges with a keypress. Do not
 			// restart the timer on every poll, or the animation would stutter.
 			this.ensureFlashing(key);
-			const newCount = snapshot.newIssues.length;
 			await Promise.all([
-				key.setTitle(newCount > 1 ? String(newCount) : ""),
+				key.setTitle(""),
 				key.setImage(ERROR_BRIGHT)
 			]);
 			return;
 		}
 
 		this.stopFlashing(key.id);
+		const label = snapshot.status === "stale"
+			? snapshot.statusCode === 429 ? "RATE" : "STALE"
+			: undefined;
 		await Promise.all([
-			key.setTitle(
-				snapshot.status === "stale"
-					? snapshot.statusCode === 429 ? "RATE" : "STALE"
-					: ""
-			),
-			key.setImage(ERROR_STEADY)
+			key.setTitle(""),
+			key.setImage(label
+				? createActionIcon("pulse", { color: "#ff375f", label })
+				: ERROR_STEADY)
 		]);
 	}
 

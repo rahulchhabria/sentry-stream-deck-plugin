@@ -12,11 +12,11 @@ import { getSentrySettings, hasRequiredSettings } from "../settings";
 import { LongPressAction } from "../long-press";
 
 const IMAGES = {
-	idle: createActionIcon("done", { color: "#34d399" }),
-	ok: createActionIcon("done", { color: "#34d399", glow: true }),
-	fail: createActionIcon("done", { color: "#f59e0b", glow: true }),
-	auth: createActionIcon("done", { color: "#f59e0b", dimmed: true }),
-	none: createActionIcon("done", { color: "#60646c", dimmed: true })
+	idle: createActionIcon("resolve", { color: "#34d399" }),
+	ok: createActionIcon("resolve", { color: "#34d399", glow: true, label: "RESOLVED" }),
+	fail: createActionIcon("resolve", { color: "#f59e0b", glow: true, label: "FAIL" }),
+	auth: createActionIcon("resolve", { color: "#f59e0b", dimmed: true, label: "AUTH" }),
+	none: createActionIcon("resolve", { color: "#60646c", dimmed: true })
 };
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.done" })
@@ -75,7 +75,7 @@ export class DoneAction extends LongPressAction {
 	private async render(key: KeyAction): Promise<void> {
 		const issue = issueSelectionStore.getSnapshot().selectedIssue;
 		if (!issue) {
-			await Promise.all([key.setTitle("NONE"), key.setImage(IMAGES.none)]);
+			await Promise.all([key.setTitle(""), key.setImage(IMAGES.none)]);
 			return;
 		}
 		await Promise.all([key.setTitle(""), key.setImage(IMAGES.idle)]);

@@ -6,19 +6,19 @@ import {
 } from "@elgato/streamdeck";
 
 import { issueSelectionStore } from "../issue-selection-store";
-import { createActionIcon, createKeyImage } from "../key-visual";
+import { createActionIcon } from "../key-visual";
 import { agentHandoffManager } from "../agent-handoff-manager";
 import { getSentrySettings } from "../settings";
 import { LongPressAction } from "../long-press";
 
 const IMAGES = {
-	setup: createKeyImage({ background: "#201a2c", accent: "#8b7aa8", label: "CONFIG" }),
-	none: createKeyImage({ background: "#17191d", accent: "#60646c", label: "NO ISSUE" }),
-	repository: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "SET REPO" }),
-	idle: createActionIcon("send", { color: "#ff3d9a" }),
-	running: createActionIcon("send", { color: "#ff3d9a", glow: true }),
-	sent: createActionIcon("send", { color: "#34d399", glow: true }),
-	error: createActionIcon("send", { color: "#f59e0b", glow: true })
+	setup: createActionIcon("agent", { color: "#8b7aa8", dimmed: true, label: "SETUP" }),
+	none: createActionIcon("agent", { color: "#60646c", dimmed: true }),
+	repository: createActionIcon("agent", { color: "#f59e0b", dimmed: true, label: "REPO" }),
+	idle: createActionIcon("agent", { color: "#ff3d9a" }),
+	running: createActionIcon("agent", { color: "#ff3d9a", glow: true, label: "RUN" }),
+	sent: createActionIcon("agent", { color: "#34d399", glow: true, label: "SENT" }),
+	error: createActionIcon("agent", { color: "#f59e0b", glow: true, label: "FAIL" })
 };
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.send-to-agent" })
@@ -79,26 +79,27 @@ export class SendToAgent extends LongPressAction {
 	private async render(key: KeyAction): Promise<void> {
 		const selection = issueSelectionStore.getSnapshot();
 		if (selection.source.status === "unconfigured") {
-			await Promise.all([key.setTitle("SETUP"), key.setImage(IMAGES.setup)]);
+			await Promise.all([key.setTitle(""), key.setImage(IMAGES.setup)]);
 			return;
 		}
 		if (selection.source.status === "error") {
 			const isAuth = selection.source.statusCode === 401 || selection.source.statusCode === 403;
 			const isRate = selection.source.statusCode === 429;
+			const label = isAuth ? "AUTH" : isRate ? "RATE" : "API ERR";
 			await Promise.all([
-				key.setTitle(isAuth ? "AUTH" : isRate ? "RATE" : "API ERR"),
-				key.setImage(IMAGES.error)
+				key.setTitle(""),
+				key.setImage(createActionIcon("agent", { color: "#f59e0b", glow: true, label }))
 			]);
 			return;
 		}
 		if (!selection.selectedIssue) {
-			await Promise.all([key.setTitle("NONE"), key.setImage(IMAGES.none)]);
+			await Promise.all([key.setTitle(""), key.setImage(IMAGES.none)]);
 			return;
 		}
 
 		const settings = await getSentrySettings();
 		if (!settings.repositoryPath?.trim()) {
-			await Promise.all([key.setTitle("REPO"), key.setImage(IMAGES.repository)]);
+			await Promise.all([key.setTitle(""), key.setImage(IMAGES.repository)]);
 			return;
 		}
 
@@ -107,27 +108,30 @@ export class SendToAgent extends LongPressAction {
 			&& status.issueId === selection.selectedIssue.id;
 		if (status.status === "running") {
 			await Promise.all([
-				key.setTitle(isSelectedIssue ? "RUN" : "BUSY"),
-				key.setImage(IMAGES.running)
+				key.setTitle(""),
+				key.setImage(isSelectedIssue
+					? IMAGES.running
+					: createActionIcon("agent", { color: "#ff3d9a", glow: true, label: "BUSY" }))
 			]);
 			return;
 		}
 		if (isSelectedIssue && status.status === "sent") {
-			await Promise.all([key.setTitle("SENT"), key.setImage(IMAGES.sent)]);
+			await Promise.all([key.setTitle(""), key.setImage(IMAGES.sent)]);
 			return;
 		}
 		if (isSelectedIssue && status.status === "error") {
-			await Promise.all([key.setTitle("FAIL"), key.setImage(IMAGES.error)]);
+			await Promise.all([key.setTitle(""), key.setImage(IMAGES.error)]);
 			return;
 		}
 
+		const staleLabel = selection.source.status === "stale"
+			? selection.source.statusCode === 429 ? "RATE" : "STALE"
+			: undefined;
 		await Promise.all([
-			key.setTitle(
-				selection.source.status === "stale"
-					? selection.source.statusCode === 429 ? "RATE" : "STALE"
-					: ""
-			),
-			key.setImage(IMAGES.idle)
+			key.setTitle(""),
+			key.setImage(staleLabel
+				? createActionIcon("agent", { color: "#ff3d9a", label: staleLabel })
+				: IMAGES.idle)
 		]);
 	}
 
