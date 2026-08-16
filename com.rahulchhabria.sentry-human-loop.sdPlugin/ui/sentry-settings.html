@@ -54,6 +54,14 @@
 		</sdpi-textfield>
 	</sdpi-item>
 
+	<sdpi-item label="GitHub CLI">
+		<sdpi-textfield
+			setting="githubCliPath"
+			placeholder="gh or /opt/homebrew/bin/gh"
+			global>
+		</sdpi-textfield>
+	</sdpi-item>
+
 	<sdpi-item label="Agent CLI">
 		<sdpi-textfield
 			setting="agentCliPath"
@@ -63,17 +71,74 @@
 	</sdpi-item>
 
 	<sdpi-item label="Agent Kind">
-		<sdpi-textfield
+		<sdpi-select
 			setting="agentKind"
-			placeholder="agent | claude | codex"
 			global>
-		</sdpi-textfield>
+			<option value="agent">Cursor Agent</option>
+			<option value="codex">Codex</option>
+			<option value="claude">Claude Code</option>
+			<option value="custom">Custom</option>
+		</sdpi-select>
 	</sdpi-item>
 
 	<sdpi-item label="Agent Extra Args">
 		<sdpi-textfield
 			setting="agentExtraArgs"
 			placeholder="--mode=agent"
+			global>
+		</sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="Launch In">
+		<sdpi-select setting="agentLaunchMode" global>
+			<option value="terminal">Terminal interface</option>
+			<option value="codex-desktop">Codex Desktop</option>
+			<option value="direct">Direct (no interface)</option>
+		</sdpi-select>
+	</sdpi-item>
+
+	<sdpi-item label="Terminal">
+		<sdpi-select setting="terminalKind" global>
+			<option value="auto">Auto-detect (Ghostty first)</option>
+			<option value="ghostty">Ghostty</option>
+			<option value="terminal">Terminal.app</option>
+			<option value="iterm">iTerm2</option>
+			<option value="custom">Custom app</option>
+		</sdpi-select>
+	</sdpi-item>
+
+	<sdpi-item label="Terminal App">
+		<sdpi-textfield
+			setting="terminalApp"
+			placeholder="CustomTerminal.app"
+			global>
+		</sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="Inspect IDE">
+		<sdpi-select setting="editorKind" global>
+			<option value="auto">Auto-detect</option>
+			<option value="cursor">Cursor</option>
+			<option value="vscode">VS Code</option>
+			<option value="zed">Zed</option>
+			<option value="xcode">Xcode</option>
+			<option value="system">System default</option>
+			<option value="custom">Custom CLI</option>
+		</sdpi-select>
+	</sdpi-item>
+
+	<sdpi-item label="IDE CLI">
+		<sdpi-textfield
+			setting="editorCliPath"
+			placeholder="Optional executable override"
+			global>
+		</sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="IDE Args">
+		<sdpi-textfield
+			setting="editorArgs"
+			placeholder="{file}:{line}"
 			global>
 		</sdpi-textfield>
 	</sdpi-item>

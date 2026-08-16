@@ -48,26 +48,6 @@ export class SelectedIssue extends LongPressAction {
 		const snapshot = issueSelectionStore.getSnapshot();
 		const issue = snapshot.selectedIssue;
 		if (issue) {
-			// Best-effort: try to open the culprit file; fall back to the permalink.
-			const settings = await getSentrySettings();
-			if (hasRequiredSettings(settings) && settings.repositoryPath?.trim()) {
-				try {
-					const event = await getLatestIssueEvent(settings, issue.id);
-					const frame = pickBestFrame(event);
-					if (frame?.filename) {
-						const opened = await openInEditorOrSystem(
-							settings.repositoryPath!.trim(),
-							normalisePath(frame.filename),
-							frame.lineno
-						);
-						if (opened) {
-							return;
-						}
-					}
-				} catch {
-					// Ignore and fall through to permalink.
-				}
-			}
 			await streamDeck.system.openUrl(issue.permalink);
 			return;
 		}
@@ -80,8 +60,40 @@ export class SelectedIssue extends LongPressAction {
 		await streamDeck.system.openUrl(getProjectIssuesUrl(settings));
 	}
 
-	protected override async onLongPress(): Promise<void> {
-		issueSelectionStore.next();
+	protected override async onLongPress(action: KeyAction): Promise<void> {
+		const issue = issueSelectionStore.getSnapshot().selectedIssue;
+		const settings = await getSentrySettings();
+		if (!issue || !hasRequiredSettings(settings) || !settings.repositoryPath?.trim()) {
+			await action.showAlert();
+			return;
+		}
+		try {
+			const event = await getLatestIssueEvent(settings, issue.id);
+			const frame = pickBestFrame(event);
+			const framePath = frame?.absPath || frame?.filename;
+			if (!framePath) {
+				await action.showAlert();
+				return;
+			}
+			const opened = await openInEditorOrSystem(
+				settings.repositoryPath.trim(),
+				normalisePath(framePath),
+				frame.lineno,
+				undefined,
+				{
+					kind: settings.editorKind,
+					executable: settings.editorCliPath,
+					argsTemplate: settings.editorArgs
+				}
+			);
+			if (!opened) {
+				await action.showAlert();
+			}
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Unknown error";
+			streamDeck.logger.error(`Inspect IDE failed for ${issue.shortId}: ${message}`);
+			await action.showAlert();
+		}
 	}
 
 	private async render(key: KeyAction, snapshot: IssueSelectionSnapshot): Promise<void> {
@@ -143,6 +155,7 @@ function positiveCount(value: number | undefined): string | undefined {
 
 function pickBestFrame(event: Awaited<ReturnType<typeof getLatestIssueEvent>>): {
 	filename?: string;
+	absPath?: string;
 	lineno?: number;
 } | undefined {
 	const values = event?.exception?.values ?? [];
@@ -151,15 +164,15 @@ function pickBestFrame(event: Awaited<ReturnType<typeof getLatestIssueEvent>>): 
 		// Prefer in_app frames towards the bottom (most recent call last).
 		for (let i = frames.length - 1; i >= 0; i -= 1) {
 			const f = frames[i]!;
-			if (f.in_app && f.filename) {
-				return { filename: f.filename, lineno: f.lineno };
+			if (f.in_app && (f.abs_path || f.filename)) {
+				return { filename: f.filename, absPath: f.abs_path, lineno: f.lineno };
 			}
 		}
 		// Otherwise any frame with a filename.
 		for (let i = frames.length - 1; i >= 0; i -= 1) {
 			const f = frames[i]!;
-			if (f.filename) {
-				return { filename: f.filename, lineno: f.lineno };
+			if (f.abs_path || f.filename) {
+				return { filename: f.filename, absPath: f.abs_path, lineno: f.lineno };
 			}
 		}
 	}
@@ -167,6 +180,14 @@ function pickBestFrame(event: Awaited<ReturnType<typeof getLatestIssueEvent>>): 
 }
 
 function normalisePath(path: string): string {
-	// Strip leading slashes or drive letters to treat it as a repo-relative path.
-	return path.replace(/^[A-Za-z]:[\\/]/, "").replace(/^[/\\]+/, "");
+	if (path.startsWith("file://")) {
+		try {
+			return new URL(path).pathname;
+		} catch {
+			// Continue with prefix cleanup.
+		}
+	}
+	return path
+		.replace(/^(?:webpack|app|vite):\/{2,3}(?:\.\/)?/, "")
+		.replace(/^\.\//, "");
 }

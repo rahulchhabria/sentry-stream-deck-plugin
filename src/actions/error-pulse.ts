@@ -14,10 +14,10 @@ import { LongPressAction } from "../long-press";
 import { pulseMuteStore } from "../pulse-mute";
 
 const FLASH_INTERVAL_MS = 600;
-const ERROR_BRIGHT = createActionIcon("pulse", { color: "#ff375f", glow: true });
 const ERROR_DIM = createActionIcon("pulse", { color: "#ff375f" });
 // Steady (acknowledged) look: errors still present, but no longer flashing.
 const ERROR_STEADY = ERROR_DIM;
+const ACK_IMAGE = createActionIcon("pulse", { color: "#34d399", glow: true, label: "SELECTED" });
 const QUIET_IMAGE = createActionIcon("pulse", { color: "#34d399" });
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.error-pulse" })
@@ -26,6 +26,8 @@ export class ErrorPulse extends LongPressAction {
 	private readonly flashTimers = new Map<string, ReturnType<typeof setInterval>>();
 	private readonly latestIssues = new Map<string, SentryIssue>();
 	private readonly latestSnapshots = new Map<string, IssueSnapshot>();
+	/** Exact issues responsible for the current alert, retained across later polls. */
+	private readonly pendingIssues = new Map<string, SentryIssue[]>();
 	/** Key ids currently alerting on an unacknowledged new issue. */
 	private readonly alerting = new Set<string>();
 	/** Subscription to mute state changes per key id. */
@@ -61,6 +63,7 @@ export class ErrorPulse extends LongPressAction {
 		this.stopSubscription(ev.action.id);
 		this.stopFlashing(ev.action.id);
 		this.latestIssues.delete(ev.action.id);
+		this.pendingIssues.delete(ev.action.id);
 		this.alerting.delete(ev.action.id);
 		this.stopMuteSubscription(ev.action.id);
 		this.latestSnapshots.delete(ev.action.id);
@@ -68,15 +71,17 @@ export class ErrorPulse extends LongPressAction {
 
 	protected override async onShortPress(action: KeyAction): Promise<void> {
 		// Acknowledge: stop flashing and select the newest "new" issue if possible.
-		if (this.alerting.delete(action.id)) {
+		const wasAlerting = this.alerting.delete(action.id);
+		if (wasAlerting) {
 			this.stopFlashing(action.id);
-			await action.setImage(ERROR_STEADY);
 		}
 
-		const snapshot = this.latestSnapshots.get(action.id);
-		const issue = pickNewestNewIssue(snapshot) ?? this.latestIssues.get(action.id);
+		const issue = this.pendingIssues.get(action.id)?.[0] ?? this.latestIssues.get(action.id);
+		this.pendingIssues.delete(action.id);
 		if (issue) {
 			issueSelectionStore.select(issue.id);
+			streamDeck.logger.info(`Pulse selected ${issue.shortId}`);
+			await action.setImage(wasAlerting ? ACK_IMAGE : ERROR_STEADY);
 			return;
 		}
 
@@ -135,6 +140,10 @@ export class ErrorPulse extends LongPressAction {
 
 		this.latestIssues.set(key.id, issue);
 		if (snapshot.newIssues.length > 0) {
+			this.pendingIssues.set(
+				key.id,
+				mergePendingIssues(this.pendingIssues.get(key.id) ?? [], snapshot)
+			);
 			this.alerting.add(key.id);
 		}
 
@@ -154,7 +163,11 @@ export class ErrorPulse extends LongPressAction {
 			this.ensureFlashing(key);
 			await Promise.all([
 				key.setTitle(""),
-				key.setImage(ERROR_BRIGHT)
+				key.setImage(createActionIcon("pulse", {
+					color: "#ff375f",
+					glow: true,
+					value: String(this.pendingIssues.get(key.id)?.length ?? snapshot.newIssues.length)
+				}))
 			]);
 			return;
 		}
@@ -182,7 +195,13 @@ export class ErrorPulse extends LongPressAction {
 				return;
 			}
 			bright = !bright;
-			void key.setImage(bright ? ERROR_BRIGHT : ERROR_DIM).catch((error: unknown) => {
+			const count = String(this.pendingIssues.get(key.id)?.length ?? 1);
+			const image = createActionIcon("pulse", {
+				color: "#ff375f",
+				glow: bright,
+				value: count
+			});
+			void key.setImage(image).catch((error: unknown) => {
 				const message = error instanceof Error ? error.message : "Unknown error";
 				streamDeck.logger.error(`Error Pulse flash failed: ${message}`);
 			});
@@ -201,6 +220,7 @@ export class ErrorPulse extends LongPressAction {
 	private clearKeyState(actionId: string): void {
 		this.stopFlashing(actionId);
 		this.latestIssues.delete(actionId);
+		this.pendingIssues.delete(actionId);
 		this.alerting.delete(actionId);
 	}
 
@@ -215,11 +235,13 @@ export class ErrorPulse extends LongPressAction {
 	}
 }
 
-function pickNewestNewIssue(snapshot: IssueSnapshot | undefined): SentryIssue | undefined {
-	if (!snapshot || snapshot.status === "unconfigured" || snapshot.status === "error") {
-		return undefined;
+export function mergePendingIssues(existing: SentryIssue[], snapshot: IssueSnapshot): SentryIssue[] {
+	if (snapshot.status === "unconfigured" || snapshot.status === "error") {
+		return existing;
 	}
-	// Choose the first issue in the current page that is marked new this cycle.
-	const newSet = new Set(snapshot.newIssues.map((i) => i.id));
-	return snapshot.issues.find((i) => newSet.has(i.id));
+	const incomingIds = new Set(snapshot.newIssues.map((item) => item.id));
+	return [
+		...snapshot.issues.filter((item) => incomingIds.has(item.id)),
+		...existing.filter((item) => !incomingIds.has(item.id))
+	];
 }

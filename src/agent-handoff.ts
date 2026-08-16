@@ -1,5 +1,6 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { platform as getPlatform } from "node:os";
+import { tmpdir } from "node:os";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 
@@ -10,6 +11,12 @@ import { getSentryBaseUrl } from "./settings";
 export type AgentCommand = {
 	executable: string;
 	args: string[];
+};
+
+export type AgentLaunchResult = {
+	mode: "terminal" | "codex-desktop" | "direct";
+	/** Desktop app launch opens the workspace and places the prompt on the clipboard. */
+	requiresPromptPaste?: boolean;
 };
 
 export type ProcessLauncher = (
@@ -25,13 +32,16 @@ export function buildAgentPrompt(
 	options?: { planText?: string; handoffPath?: string; requestDraftPr?: boolean }
 ): string {
 	const lines: string[] = [
-		`Sentry issue ${issue.shortId} (${issue.permalink}).`,
+		`Sentry issue ${issue.shortId}: ${issue.title} (${issue.permalink}).`,
 		"Use Sentry MCP get_issue_details and analyze_issue_with_seer (or the Sentry CLI if MCP is unavailable).",
 		"Identify root cause. Smallest safe fix in the right files.",
 		"Add or update a regression test."
 	];
 	if (options?.requestDraftPr) {
-		lines.push("Open a draft PR linking this issue.");
+		lines.push(
+			"There may already be uncommitted local changes for this issue. Preserve and inspect them; do not reset or discard them.",
+			"Validate the intended changes, commit them on an appropriate branch, push, and open a draft PR linking this issue."
+		);
 	}
 	if (options?.handoffPath) {
 		lines.push(
@@ -70,7 +80,17 @@ export async function writeHandoffFile(
 	settings: SentrySettings,
 	planText?: string
 ): Promise<string> {
-	const dir = join(repositoryPath, ".sentry-deck");
+	// Keep handoff metadata out of the user's worktree. Prefer the repository's
+	// private Git metadata; use the OS temp directory for worktrees/non-Git repos.
+	let dir = join(tmpdir(), "sentry-stream-deck", issue.id.replace(/[^A-Za-z0-9._-]/g, "_"));
+	try {
+		const gitDir = join(repositoryPath, ".git");
+		if ((await fs.stat(gitDir)).isDirectory()) {
+			dir = join(gitDir, "sentry-deck");
+		}
+	} catch {
+		// Non-Git repository or linked worktree: use the temp location.
+	}
 	await fs.mkdir(dir, { recursive: true });
 
 	const handoff = {
@@ -88,31 +108,47 @@ export async function writeHandoffFile(
 	const handoffPath = join(dir, "handoff.json");
 	await fs.writeFile(handoffPath, JSON.stringify(handoff, null, 2), "utf8");
 
-	// Best-effort: keep .sentry-deck/ out of version control.
-	try {
-		const gitDir = join(repositoryPath, ".git");
-		await fs.stat(gitDir);
-		const ignorePath = join(repositoryPath, ".gitignore");
-		let current = "";
-		try {
-			current = await fs.readFile(ignorePath, "utf8");
-		} catch {
-			// No .gitignore; skip.
+	return handoffPath;
+}
+
+export async function launchAgent(
+	command: AgentCommand,
+	repositoryPath: string,
+	settings: SentrySettings,
+	launcher: ProcessLauncher = launchDetached,
+	clipboardWriter: (text: string) => Promise<void> = copyToClipboard
+): Promise<AgentLaunchResult> {
+	const mode = settings.agentLaunchMode ?? "terminal";
+	if (mode === "codex-desktop") {
+		const configuredKind = settings.agentKind?.trim().toLowerCase();
+		const executableName = command.executable.split(/[/\\]/).at(-1)?.toLowerCase() ?? "";
+		if (configuredKind !== "codex" && !executableName.includes("codex")) {
+			throw new Error("Codex Desktop launch mode requires Agent Kind = codex");
 		}
-		if (!current.includes(".sentry-deck/")) {
-			const inserted = current.endsWith("\n") || current === "" ? current : `${current}\n`;
-			await fs.writeFile(ignorePath, `${inserted}.sentry-deck/\n`, "utf8");
-		}
-	} catch {
-		// Not a git repo or ignore update failed — ignore silently.
+		const prompt = command.args.at(-1) ?? "";
+		await clipboardWriter(prompt);
+		await launcher(command.executable, ["app", repositoryPath], {
+			cwd: repositoryPath,
+			windowsHide: true
+		});
+		return { mode, requiresPromptPaste: true };
+	}
+	if (mode === "direct") {
+		await launcher(command.executable, command.args, {
+			cwd: repositoryPath,
+			windowsHide: true
+		});
+		return { mode };
 	}
 
-	return handoffPath;
+	await launchInTerminal(command, repositoryPath, settings, launcher);
+	return { mode: "terminal" };
 }
 
 export async function launchInTerminal(
 	command: AgentCommand,
 	repositoryPath: string,
+	settings: SentrySettings = {},
 	launcher: ProcessLauncher = launchDetached
 ): Promise<void> {
 	const platform = getPlatform();
@@ -120,7 +156,49 @@ export async function launchInTerminal(
 	const cdAndRun = `cd ${shellQuote([repositoryPath])} && ${quotedCmd}`;
 
 	if (platform === "darwin") {
-		// Open macOS Terminal and run the command.
+		const terminalKind = await resolveMacTerminal(settings.terminalKind ?? "auto");
+		if (terminalKind === "ghostty") {
+			const script = [
+				'tell application "Ghostty"',
+				"set launchConfig to new surface configuration",
+				`set initial working directory of launchConfig to ${appleScriptQuote(repositoryPath)}`,
+				`set command of launchConfig to ${appleScriptQuote(quotedCmd)}`,
+				"set wait after command of launchConfig to true",
+				"new window with configuration launchConfig",
+				"activate",
+				"end tell"
+			].join("\n");
+			await launcher("osascript", ["-e", script], { windowsHide: true });
+			return;
+		}
+		if (terminalKind === "iterm") {
+			const script = [
+				'tell application "iTerm2"',
+				"activate",
+				"if (count of windows) = 0 then",
+				`create window with default profile command ${appleScriptQuote(cdAndRun)}`,
+				"else",
+				`tell current window to create tab with default profile command ${appleScriptQuote(cdAndRun)}`,
+				"end if",
+				"end tell"
+			].join("\n");
+			await launcher("osascript", ["-e", script], { windowsHide: true });
+			return;
+		}
+		if (terminalKind === "custom" && settings.terminalApp?.trim()) {
+			await launcher("open", [
+				"-na",
+				settings.terminalApp.trim(),
+				"--args",
+				"-e",
+				"/bin/zsh",
+				"-lc",
+				cdAndRun
+			], { windowsHide: true });
+			return;
+		}
+
+		// Default macOS Terminal integration.
 		const osa = [
 			"osascript",
 			"-e",
@@ -183,19 +261,39 @@ function launchDetached(
 	options?: { cwd?: string; windowsHide?: boolean; timeout?: number }
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const child = execFile(executable, args, {
+		const child = spawn(executable, args, {
 			cwd: options?.cwd,
 			windowsHide: options?.windowsHide ?? false,
-			timeout: options?.timeout ?? 10_000
-		}, (error) => {
-			if (error) {
-				reject(error);
-				return;
-			}
-			resolve();
+			detached: true,
+			stdio: "ignore"
 		});
-		// Do not hold the process open; this is a launcher.
+		child.once("error", reject);
+		child.once("spawn", resolve);
 		child.unref();
+	});
+}
+
+async function resolveMacTerminal(
+	configured: NonNullable<SentrySettings["terminalKind"]>
+): Promise<NonNullable<SentrySettings["terminalKind"]>> {
+	if (configured !== "auto") {
+		return configured;
+	}
+	try {
+		await fs.access("/Applications/Ghostty.app");
+		return "ghostty";
+	} catch {
+		return "terminal";
+	}
+}
+
+function copyToClipboard(value: string): Promise<void> {
+	if (getPlatform() !== "darwin") {
+		return Promise.reject(new Error("Codex Desktop clipboard handoff is currently supported on macOS only"));
+	}
+	return new Promise((resolve, reject) => {
+		const child = execFile("pbcopy", (error) => error ? reject(error) : resolve());
+		child.stdin?.end(value);
 	});
 }
 
@@ -245,4 +343,3 @@ function splitArgs(value: string): string[] {
 	}
 	return result;
 }
-

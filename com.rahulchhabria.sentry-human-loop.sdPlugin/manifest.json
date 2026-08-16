@@ -24,7 +24,7 @@
 			"Name": "Inspect Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Inspects the selected issue. Short press opens the culprit file in your IDE (best-effort) or Sentry. Long press selects next.",
+			"Tooltip": "Short press opens the selected issue in Sentry. Long press opens its best source location in your configured IDE.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -40,7 +40,7 @@
 			"Name": "Next Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.next-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Selects the next highest-pain unresolved issue (wraps).",
+			"Tooltip": "Short press selects the next highest-pain unresolved issue; long press selects the previous issue (wraps).",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -72,7 +72,7 @@
 			"Name": "View PR",
 			"UUID": "com.rahulchhabria.sentry-human-loop.loop",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Shows follow-up status after an AGENT handoff: DRAFT, CI, FAIL, MERGED, or SENT when no PR is found.",
+			"Tooltip": "Opens the selected issue's PR and shows CI status. If no PR exists, asks the configured agent to validate local changes and create a draft PR.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -88,7 +88,7 @@
 			"Name": "Resolve",
 			"UUID": "com.rahulchhabria.sentry-human-loop.done",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Resolve (short) or archive (long) the selected issue via Sentry API. Requires event:write.",
+			"Tooltip": "Resolve (short) or archive (long) the selected issue via a two-press confirmation. Requires event:write.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"

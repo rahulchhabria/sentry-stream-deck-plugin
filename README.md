@@ -28,19 +28,19 @@ Shares a single poll of Sentry's v0 Issues API every 15 seconds. The key:
 
 ### Inspect / Next Issue
 
-Walk a shared selection through the highest‑pain unresolved issues (ordered by
-`userCount`, then total `count`, then recency). The selection remains stable
+Walk a shared selection through the highest‑pain issues in Sentry's 100 most
+recently active unresolved issues (ordered by `userCount`, then total `count`,
+then recency). The selection remains stable
 across refreshes and during transient API failures.
 
-- INSPECT opens the selected issue in your IDE when a culprit file is available, with a compact heat hint (user count or total events).
-  Short press opens the culprit file in your local editor (Cursor if available)
-  using the latest event stacktrace; falls back to the Sentry permalink.
-  Long press cycles to the next issue.
-- NEXT selects the next issue (wraps).
+- INSPECT short press always opens the selected issue in Sentry. Long press
+  opens the best source location from the latest event in the configured IDE.
+- NEXT short press selects the next issue; long press selects the previous issue
+  (both wrap). The key briefly glows and logs the selected short ID.
 
 ### Agent
 
-Starts your preferred local coding agent in the configured repository with a
+Starts your preferred local coding agent in the configured repository and host with a
 prompt that includes the selected Sentry issue's short ID and permalink. The
 agent is expected to have Sentry MCP configured so it can call
 `get_issue_details` and `analyze_issue_with_seer` itself.
@@ -50,22 +50,33 @@ agent is expected to have Sentry MCP configured so it can call
   repository), plus **AUTH/RATE/API ERR** when relevant.
 - Short press launches with a minimal prompt. Long press explicitly asks the agent
   to open a draft PR linking the issue.
+- Terminal mode supports Ghostty, Terminal.app, iTerm2, and a custom terminal.
+  Auto-detect prefers Ghostty when it is installed.
+- Codex Desktop mode opens the repository with `codex app`, copies the complete
+  prompt to the clipboard, and shows **PASTE** because the public app launcher
+  does not accept an initial prompt.
 - The plugin never auto‑launches an agent when flashing.
 
 ### View PR
 
-Follow‑up on the last successful AGENT handoff. On a slow interval (≈30s), the key
-looks for a PR in the configured repository whose title mentions the issue
-short ID using the GitHub CLI (`gh`). It shows **DRAFT**, **CI**, **FAIL**,
-or **MERGED** when it can determine a state; otherwise **SENT** (handoff
-happened, no PR yet). Short press opens the PR if known, else the issue.
+Operates on the currently selected issue, even after a plugin restart. On a slow
+interval (≈30s), the key searches PR title, body, and branch for the exact issue
+short ID using the GitHub CLI (`gh`). It shows **NO PR**, **DRAFT**, **CI**,
+**READY**, **FAIL**, **MERGED**, **CLOSED**, or **PR ERR**.
+
+- If a PR exists, pressing the key opens it in GitHub.
+- If no PR exists, pressing the key brings the configured agent interface forward
+  with a prompt to preserve and validate existing local changes, commit, push,
+  and open a draft PR.
+- GitHub CLI/auth/network failures show **PR ERR** and never trigger an agent.
 
 ### Resolve
 
 Operates on the selected issue:
 
-- Short press: resolve the issue via the Sentry Issues API.
-- Long press: archive/ignore the issue.
+- Short press twice within three seconds: resolve the issue.
+- Long press twice within three seconds: archive/ignore the issue.
+- A successful mutation immediately refreshes the shared issue queue.
 - Requires a token with `event:write`. When missing, the key shows **AUTH**.
 
 ## Requirements
@@ -86,11 +97,18 @@ Inspector settings (stored in Stream Deck global settings, shared by all actions
 | **Auth Token** | Required. Sentry auth token with the scopes above. |
 | **Organization** | Required. Organization slug. |
 | **Project** | Required. Project slug. |
-| **Repository** | Absolute path to the local repository used by Agent Plan. |
+| **Repository** | Absolute path to the local repository used by Inspect, Agent, and View PR. |
 | **Sentry CLI** | Optional executable or absolute path. Defaults to `sentry`. An absolute path is often more reliable when Stream Deck does not inherit the shell's `PATH`. |
+| **GitHub CLI** | Optional executable or absolute path used by View PR. On macOS the plugin checks common Homebrew paths before relying on `PATH`. |
 | **Agent CLI** | Optional executable or absolute path to your coding agent. Defaults to `agent` (Cursor CLI). Absolute paths are recommended. |
-| **Agent Kind** | Optional hint for argv shaping: `agent`, `claude`, or `codex`. Free text allowed; defaults to `agent`. |
+| **Agent Kind** | Agent adapter: Codex, Claude Code, Cursor Agent, or Custom. Existing unset configurations retain the `agent` default. |
 | **Agent Extra Args** | Optional extra arguments passed before the prompt. |
+| **Launch In** | Terminal interface, Codex Desktop, or direct/no-interface mode. |
+| **Terminal** | Auto-detect, Ghostty, Terminal.app, iTerm2, or a custom application. |
+| **Terminal App** | Application name for the custom-terminal adapter. |
+| **Inspect IDE** | Auto-detect, Cursor, VS Code, Zed, Xcode, system default, or custom CLI. |
+| **IDE CLI** | Optional executable override for the selected editor. |
+| **IDE Args** | Custom argument template supporting `{file}`, `{line}`, and `{repo}`. |
 
 The token is stored in Stream Deck's plugin global settings and is never
 hardcoded or written to the plugin logs.
@@ -147,8 +165,10 @@ npm run sim      # opens an interactive browser simulator of the key states
 ```
 
 `npm run sim` renders the Error Pulse visuals and lets you exercise the flash /
-acknowledge / clear / error behaviour without a physical device. Selection and
-Agent Plan behavior is covered by the Node test suite.
+acknowledge / clear / error behaviour without a physical device. Coordinated
+six-key behavior requires Stream Deck hardware, Mobile, or a Virtual Device;
+selection, editor launch, Agent handoff, and PR-state behavior are covered by
+the Node test suite.
 
 Run every automated build and packaging gate with:
 

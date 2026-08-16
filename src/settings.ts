@@ -14,6 +14,8 @@ export type SentrySettings = {
 	repositoryPath?: string;
 	/** Optional absolute path to the new `sentry` CLI executable. */
 	sentryCliPath?: string;
+	/** Optional absolute path to the GitHub CLI executable used for PR discovery. */
+	githubCliPath?: string;
 	/** Optional absolute path to the local coding agent CLI (e.g. `agent`, `claude`, or `codex`). */
 	agentCliPath?: string;
 	/**
@@ -23,6 +25,18 @@ export type SentrySettings = {
 	agentKind?: string;
 	/** Optional extra args to pass to the agent CLI before the prompt. */
 	agentExtraArgs?: string;
+	/** Where the coding-agent workflow should be presented to the user. */
+	agentLaunchMode?: "terminal" | "codex-desktop" | "direct";
+	/** Preferred terminal host for interactive agent CLIs. */
+	terminalKind?: "auto" | "ghostty" | "terminal" | "iterm" | "custom";
+	/** Application name used when terminalKind is custom. */
+	terminalApp?: string;
+	/** Preferred editor for opening an issue's source location. */
+	editorKind?: "auto" | "cursor" | "vscode" | "zed" | "xcode" | "system" | "custom";
+	/** Executable used when editorKind is custom, or an override for a known editor. */
+	editorCliPath?: string;
+	/** Optional editor argument template. Supports {file}, {line}, and {repo}. */
+	editorArgs?: string;
 };
 
 /** Settings that are guaranteed to have the required connection fields. */

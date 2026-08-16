@@ -1,15 +1,24 @@
 import streamDeck from "@elgato/streamdeck";
+import { stat } from "node:fs/promises";
+import { isAbsolute } from "node:path";
 
 import type { SentryIssue } from "./sentry-api";
 import type { SentrySettings } from "./settings";
-import { buildAgentCommand, buildAgentPrompt, launchInTerminal, writeHandoffFile, type AgentCommand } from "./agent-handoff";
+import {
+	buildAgentCommand,
+	buildAgentPrompt,
+	launchAgent,
+	writeHandoffFile,
+	type AgentCommand,
+	type AgentLaunchResult
+} from "./agent-handoff";
 
 export type TerminalLauncher = (command: AgentCommand, repositoryPath: string) => Promise<void>;
 
 export type AgentHandoffStatus =
 	| { status: "idle" }
 	| { status: "running"; issueId: string }
-	| { status: "sent"; issueId: string }
+	| { status: "sent"; issueId: string; launch: AgentLaunchResult }
 	| { status: "error"; issueId: string; message: string };
 
 type Subscriber = (status: AgentHandoffStatus) => void | Promise<void>;
@@ -42,6 +51,18 @@ class AgentHandoffManager {
 			this.publish({ status: "error", issueId: issue.id, message: "Missing repository path" });
 			return;
 		}
+		if (!isAbsolute(repositoryPath)) {
+			this.publish({ status: "error", issueId: issue.id, message: "Repository path must be absolute" });
+			return;
+		}
+		try {
+			if (!(await stat(repositoryPath)).isDirectory()) {
+				throw new Error("Not a directory");
+			}
+		} catch {
+			this.publish({ status: "error", issueId: issue.id, message: "Repository path does not exist" });
+			return;
+		}
 		const agentCliPath = settings.agentCliPath?.trim() || "agent";
 
 		this.publish({ status: "running", issueId: issue.id });
@@ -65,8 +86,10 @@ class AgentHandoffManager {
 				settings.agentExtraArgs,
 				prompt
 			);
-			await (launcher ?? launchInTerminal)(command, repositoryPath);
-			this.publish({ status: "sent", issueId: issue.id });
+			const launch = launcher
+				? (await launcher(command, repositoryPath), { mode: "terminal" as const })
+				: await launchAgent(command, repositoryPath, settings);
+			this.publish({ status: "sent", issueId: issue.id, launch });
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Unknown error";
 			streamDeck.logger.error(`Send to Agent failed: ${message}`);
@@ -90,4 +113,3 @@ class AgentHandoffManager {
 }
 
 export const agentHandoffManager = new AgentHandoffManager();
-

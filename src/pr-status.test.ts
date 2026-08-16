@@ -19,9 +19,9 @@ function runnerSequence(responses: string[]): GhRunner {
 	};
 }
 
-test("detectPrStatus returns sent when no PR found", async () => {
+test("detectPrStatus returns none when no PR found", async () => {
 	const status = await detectPrStatus(repo, "WEB-123", runnerSequence(["[]"]));
-	assert.equal(status.state, "sent");
+	assert.equal(status.state, "none");
 });
 
 test("detectPrStatus returns draft when isDraft", async () => {
@@ -53,3 +53,42 @@ test("detectPrStatus returns ci when checks pending", async () => {
 	assert.equal(status.state, "ci");
 });
 
+test("detectPrStatus returns ready when checks pass", async () => {
+	const list = JSON.stringify([{ number: 4, title: "Fix WEB-123", url: "https://x/p/4" }]);
+	const view = JSON.stringify({
+		state: "OPEN",
+		statusCheckRollup: [{ conclusion: "SUCCESS" }],
+		url: "https://x/p/4"
+	});
+	const status = await detectPrStatus(repo, "WEB-123", runnerSequence([list, view]));
+	assert.equal(status.state, "ready");
+});
+
+test("matches the exact issue id in title, body, or branch", async () => {
+	const list = JSON.stringify([
+		{ number: 1, title: "Fix WEB-1234", url: "https://x/p/1" },
+		{ number: 2, title: "Fix crash", body: "Closes WEB-123.", url: "https://x/p/2" }
+	]);
+	const view = JSON.stringify({ isDraft: true, url: "https://x/p/2" });
+	const status = await detectPrStatus(repo, "WEB-123", runnerSequence([list, view]));
+	assert.equal(status.state, "draft");
+	assert.equal(status.url, "https://x/p/2");
+});
+
+test("reports GitHub CLI failures separately from no PR", async () => {
+	const status = await detectPrStatus(repo, "WEB-123", async () => {
+		throw new Error("gh auth required");
+	});
+	assert.equal(status.state, "error");
+	assert.match(status.message ?? "", /auth required/);
+});
+
+test("uses the configured GitHub CLI path", async () => {
+	let executable = "";
+	const status = await detectPrStatus(repo, "WEB-123", async (received) => {
+		executable = received;
+		return { stdout: "[]" };
+	}, "/custom/bin/gh");
+	assert.equal(status.state, "none");
+	assert.equal(executable, "/custom/bin/gh");
+});

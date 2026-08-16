@@ -90,6 +90,11 @@ class IssuePoller {
 		};
 	}
 
+	/** Requests an immediate refresh after a user-initiated mutation. */
+	refreshNow(): Promise<void> {
+		return this.refresh(true);
+	}
+
 	private refresh(queueIfBusy = false): Promise<void> {
 		if (this.refreshPromise) {
 			this.refreshRequested ||= queueIfBusy;

@@ -18,6 +18,7 @@ const IMAGES = {
 	idle: createActionIcon("agent", { color: "#ff3d9a" }),
 	running: createActionIcon("agent", { color: "#ff3d9a", glow: true, label: "RUN" }),
 	sent: createActionIcon("agent", { color: "#34d399", glow: true, label: "SENT" }),
+	paste: createActionIcon("agent", { color: "#a78bfa", glow: true, label: "PASTE" }),
 	error: createActionIcon("agent", { color: "#f59e0b", glow: true, label: "FAIL" })
 };
 
@@ -64,9 +65,6 @@ export class SendToAgent extends LongPressAction {
 		if (status.status === "running") {
 			await action.showAlert();
 			return;
-		}
-		if (status.status === "sent" && status.issueId === issue.id) {
-			return; // No-op when already sent for this issue.
 		}
 		const settings = await getSentrySettings();
 		if (!settings.repositoryPath?.trim()) {
@@ -116,7 +114,10 @@ export class SendToAgent extends LongPressAction {
 			return;
 		}
 		if (isSelectedIssue && status.status === "sent") {
-			await Promise.all([key.setTitle(""), key.setImage(IMAGES.sent)]);
+			await Promise.all([
+				key.setTitle(""),
+				key.setImage(status.launch.requiresPromptPaste ? IMAGES.paste : IMAGES.sent)
+			]);
 			return;
 		}
 		if (isSelectedIssue && status.status === "error") {

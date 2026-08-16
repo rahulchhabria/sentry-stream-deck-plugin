@@ -4,6 +4,7 @@ import { test } from "node:test";
 import type { IssueSnapshot } from "./issue-poller";
 import type { SentryIssue } from "./sentry-api";
 import { pulseMuteStore } from "./pulse-mute";
+import { mergePendingIssues } from "./actions/error-pulse";
 
 const mk = (id: string): SentryIssue => ({
 	id,
@@ -30,6 +31,24 @@ test("Pulse selects the newest of the new issues instead of issues[0]", () => {
 		hasMore: false
 	};
 	assert.equal(pickNewestNewIssue(snapshot)?.id, "1");
+});
+
+test("Pulse retains the exact alert-causing issue across later polls", () => {
+	const alertSnapshot: IssueSnapshot = {
+		status: "ready",
+		issues: [mk("3"), mk("2"), mk("1")],
+		newIssues: [mk("1")],
+		hasMore: false
+	};
+	const laterSnapshot: IssueSnapshot = {
+		status: "ready",
+		issues: [mk("4"), mk("3"), mk("2"), mk("1")],
+		newIssues: [],
+		hasMore: false
+	};
+	const pending = mergePendingIssues([], alertSnapshot);
+	assert.equal(pending[0]?.id, "1");
+	assert.equal(mergePendingIssues(pending, laterSnapshot)[0]?.id, "1");
 });
 
 test("mute store toggles and notifies", async () => {

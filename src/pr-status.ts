@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { access } from "node:fs/promises";
 
 export type GhRunner = (
 	executable: string,
@@ -23,42 +24,55 @@ async function run(
 	});
 }
 
-export type LoopState = "idle" | "sent" | "draft" | "ci" | "fail" | "merged";
-export type LoopStatus = { state: LoopState; url?: string };
+export type LoopState = "none" | "draft" | "ci" | "ready" | "fail" | "merged" | "closed" | "error";
+export type LoopStatus = { state: LoopState; url?: string; message?: string };
 
 /**
  * Best-effort PR detection using the GitHub CLI: looks for any PR in the
- * repository whose title mentions the Sentry shortId.
+ * repository whose title, body, or branch mentions the Sentry shortId.
  *
  * Returns:
  * - draft: PR exists and is a draft
  * - merged: PR is merged
  * - ci: PR exists and checks are pending/running
  * - fail: PR exists and checks failed
- * - sent: no PR found yet
+ * - none: no PR found yet
  */
 export async function detectPrStatus(
 	repositoryPath: string,
 	shortId: string,
-	runner: GhRunner = run
+	runner: GhRunner = run,
+	configuredExecutable?: string
 ): Promise<LoopStatus> {
 	try {
-		const list = await runner("gh", [
+		const executable = configuredExecutable?.trim() || await resolveGitHubCli();
+		const list = await runner(executable, [
 			"pr",
 			"list",
 			"--state",
 			"all",
+			"--search",
+			shortId,
 			"--json",
-			"number,title,url,isDraft",
+			"number,title,url,isDraft,body,headRefName",
 			"-L",
-			"50"
+			"100"
 		], { cwd: repositoryPath, windowsHide: true });
-		const prs = JSON.parse(list.stdout) as Array<{ number: number; title: string; url: string; isDraft?: boolean }>;
-		const match = prs.find((p) => typeof p.title === "string" && p.title.includes(shortId));
+		const prs = JSON.parse(list.stdout) as Array<{
+			number: number;
+			title: string;
+			url: string;
+			isDraft?: boolean;
+			body?: string;
+			headRefName?: string;
+		}>;
+		const match = prs.find((pr) => [pr.title, pr.body, pr.headRefName].some(
+			(value) => typeof value === "string" && containsIssueId(value, shortId)
+		));
 		if (!match) {
-			return { state: "sent" };
+			return { state: "none" };
 		}
-		const view = await runner("gh", [
+		const view = await runner(executable, [
 			"pr",
 			"view",
 			String(match.number),
@@ -70,7 +84,7 @@ export async function detectPrStatus(
 			state?: string;
 			mergedAt?: string | null;
 			url?: string;
-			statusCheckRollup?: Array<{ state?: string; conclusion?: string }>;
+			statusCheckRollup?: Array<{ state?: string; status?: string; conclusion?: string }>;
 		};
 		if (data.mergedAt) {
 			return { state: "merged", url: data.url ?? match.url };
@@ -78,18 +92,40 @@ export async function detectPrStatus(
 		if (data.isDraft) {
 			return { state: "draft", url: data.url ?? match.url };
 		}
+		if ((data.state || "").toUpperCase() === "CLOSED") {
+			return { state: "closed", url: data.url ?? match.url };
+		}
 		const checks = data.statusCheckRollup ?? [];
-		const states = checks.map((c) => (c.conclusion || c.state || "").toUpperCase());
+		const states = checks.map((c) => (c.conclusion || c.state || c.status || "").toUpperCase());
 		if (states.some((s) => ["FAILURE", "FAILED", "ERROR", "CANCELLED", "TIMED_OUT"].includes(s))) {
 			return { state: "fail", url: data.url ?? match.url };
 		}
-		if (checks.length > 0 || ["OPEN", "QUEUED"].includes((data.state || "").toUpperCase())) {
+		if (states.some((s) => !s || ["PENDING", "QUEUED", "IN_PROGRESS", "REQUESTED", "WAITING"].includes(s))) {
 			return { state: "ci", url: data.url ?? match.url };
 		}
-		return { state: "ci", url: data.url ?? match.url };
-	} catch {
-		// gh not present or error: treat as "sent" (handoff happened, no PR yet).
-		return { state: "sent" };
+		return { state: "ready", url: data.url ?? match.url };
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "GitHub CLI failed";
+		return { state: "error", message };
 	}
 }
 
+async function resolveGitHubCli(): Promise<string> {
+	if (process.platform !== "darwin") {
+		return "gh";
+	}
+	for (const candidate of ["/opt/homebrew/bin/gh", "/usr/local/bin/gh"]) {
+		try {
+			await access(candidate);
+			return candidate;
+		} catch {
+			// Try the next common installation path before relying on PATH.
+		}
+	}
+	return "gh";
+}
+
+function containsIssueId(value: string, shortId: string): boolean {
+	const escaped = shortId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`(^|[^A-Za-z0-9])${escaped}([^A-Za-z0-9]|$)`, "i").test(value);
+}

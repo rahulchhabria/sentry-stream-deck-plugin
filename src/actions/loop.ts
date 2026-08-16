@@ -1,136 +1,182 @@
 import streamDeck, {
 	action,
 	type KeyAction,
-	type WillAppearEvent,
-	type WillDisappearEvent,
+	type KeyDownEvent,
 	SingletonAction,
-	type KeyDownEvent
+	type WillAppearEvent,
+	type WillDisappearEvent
 } from "@elgato/streamdeck";
 
 import { agentHandoffManager } from "../agent-handoff-manager";
 import { issueSelectionStore } from "../issue-selection-store";
 import { createActionIcon } from "../key-visual";
 import { detectPrStatus, type LoopStatus } from "../pr-status";
-import { getSentrySettings, hasRequiredSettings } from "../settings";
+import { getSentrySettings } from "../settings";
 
 const IMAGES = {
-	idle: createActionIcon("pr", { color: "#38bdf8" }),
-	sent: createActionIcon("pr", { color: "#34d399", label: "SENT" }),
+	idle: createActionIcon("pr", { color: "#60646c", dimmed: true }),
+	looking: createActionIcon("pr", { color: "#38bdf8", glow: true, label: "LOOKING" }),
+	none: createActionIcon("pr", { color: "#38bdf8", label: "NO PR" }),
+	agent: createActionIcon("pr", { color: "#ff3d9a", glow: true, label: "AGENT" }),
+	paste: createActionIcon("pr", { color: "#ff3d9a", glow: true, label: "PASTE" }),
 	draft: createActionIcon("pr", { color: "#a78bfa", glow: true, label: "DRAFT" }),
 	ci: createActionIcon("pr", { color: "#38bdf8", glow: true, label: "CI" }),
+	ready: createActionIcon("pr", { color: "#34d399", glow: true, label: "READY" }),
 	fail: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "FAIL" }),
 	merged: createActionIcon("pr", { color: "#34d399", glow: true, label: "MERGED" }),
-	error: createActionIcon("pr", { color: "#f59e0b", dimmed: true, label: "SETUP" })
-};
-
-type LastHandoff = {
-	issueId: string;
-	shortId: string;
-	permalink: string;
+	closed: createActionIcon("pr", { color: "#60646c", dimmed: true, label: "CLOSED" }),
+	error: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "PR ERR" }),
+	setup: createActionIcon("pr", { color: "#f59e0b", dimmed: true, label: "SETUP" })
 };
 
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.loop" })
 export class LoopStatusAction extends SingletonAction {
-	private readonly subscriptions = new Map<string, () => void>();
+	private readonly subscriptions = new Map<string, Array<() => void>>();
 	private readonly timers = new Map<string, ReturnType<typeof setInterval>>();
-	private readonly lastHandoff = new Map<string, LastHandoff>();
-	private readonly prStatusCache = new Map<string, LoopStatus>();
+	private readonly renderVersions = new Map<string, number>();
 
 	override onWillAppear(ev: WillAppearEvent): void {
 		if (!ev.action.isKey()) {
 			return;
 		}
 		const key = ev.action;
-		this.stopSubscription(key.id);
-		const unsubscribe = agentHandoffManager.subscribe(async (status) => {
-			if (status.status === "sent") {
-				const sel = issueSelectionStore.getSnapshot().selectedIssue;
-				if (sel && sel.id === status.issueId) {
-					this.lastHandoff.set(key.id, {
-						issueId: sel.id,
-						shortId: sel.shortId,
-						permalink: sel.permalink
-					});
-				}
-			}
-			await this.render(key);
-		});
-		this.subscriptions.set(key.id, unsubscribe);
+		this.stopSubscriptions(key.id);
+		const render = () => this.requestRender(key);
+		this.subscriptions.set(key.id, [
+			issueSelectionStore.subscribe(render),
+			agentHandoffManager.subscribe(render)
+		]);
 
-		// Start slow polling.
 		this.stopTimer(key.id);
-		const timer = setInterval(() => void this.render(key), 30_000);
-		this.timers.set(key.id, timer);
-		void this.render(key);
+		this.timers.set(key.id, setInterval(render, 30_000));
 	}
 
 	override onWillDisappear(ev: WillDisappearEvent): void {
-		this.stopSubscription(ev.action.id);
+		this.stopSubscriptions(ev.action.id);
 		this.stopTimer(ev.action.id);
-		this.lastHandoff.delete(ev.action.id);
-		this.prStatusCache.delete(ev.action.id);
+		this.renderVersions.delete(ev.action.id);
 	}
 
 	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
 		const key = ev.action as KeyAction;
-		const last = this.lastHandoff.get(key.id);
-		if (!last) {
+		const issue = issueSelectionStore.getSnapshot().selectedIssue;
+		if (!issue) {
 			await key.showAlert();
 			return;
 		}
-		const repo = (await getSentrySettings()).repositoryPath?.trim();
-		const status = this.prStatusCache.get(key.id);
-		if (repo && status?.url) {
-			await streamDeck.system.openUrl(status.url);
-			return;
-		}
-		await streamDeck.system.openUrl(last.permalink);
-	}
 
-	private async render(key: KeyAction): Promise<void> {
 		const settings = await getSentrySettings();
-		const last = this.lastHandoff.get(key.id);
-		if (!last) {
-			await Promise.all([key.setTitle(""), key.setImage(IMAGES.idle)]);
+		if (!settings.repositoryPath?.trim()) {
+			await key.setImage(IMAGES.setup);
 			return;
 		}
-		if (!hasRequiredSettings(settings) || !settings.repositoryPath?.trim()) {
-			await Promise.all([key.setTitle(""), key.setImage(IMAGES.error)]);
+
+		await key.setImage(IMAGES.looking);
+		const status = await detectPrStatus(
+			settings.repositoryPath.trim(),
+			issue.shortId,
+			undefined,
+			settings.githubCliPath
+		);
+		if (status.url && status.state !== "none" && status.state !== "error") {
+			await streamDeck.system.openUrl(status.url);
+			await this.requestRender(key);
 			return;
 		}
-		// Throttle: only check when needed or timer ticked.
-		const status = await detectPrStatus(settings.repositoryPath.trim(), last.shortId);
-		this.prStatusCache.set(key.id, status);
-		switch (status.state) {
-			case "draft":
-				await Promise.all([key.setTitle(""), key.setImage(IMAGES.draft)]);
-				return;
-			case "ci":
-				await Promise.all([key.setTitle(""), key.setImage(IMAGES.ci)]);
-				return;
-			case "fail":
-				await Promise.all([key.setTitle(""), key.setImage(IMAGES.fail)]);
-				return;
-			case "merged":
-				await Promise.all([key.setTitle(""), key.setImage(IMAGES.merged)]);
-				return;
-			case "sent":
-			default:
-				await Promise.all([key.setTitle(""), key.setImage(IMAGES.sent)]);
-				return;
+		if (status.state === "error") {
+			streamDeck.logger.error(`View PR lookup failed for ${issue.shortId}: ${status.message ?? "Unknown error"}`);
+			await key.setImage(IMAGES.error);
+			return;
 		}
+
+		const agentStatus = agentHandoffManager.getStatus();
+		if (agentStatus.status === "running") {
+			await key.showAlert();
+			return;
+		}
+		await key.setImage(IMAGES.agent);
+		await agentHandoffManager.start(issue, settings, { requestDraftPr: true });
+		await this.requestRender(key);
 	}
 
-	private stopSubscription(actionId: string): void {
-		this.subscriptions.get(actionId)?.();
+	private async render(key: KeyAction, version: number): Promise<void> {
+		const issue = issueSelectionStore.getSnapshot().selectedIssue;
+		if (!issue) {
+			await key.setImage(IMAGES.idle);
+			return;
+		}
+		const settings = await getSentrySettings();
+		if (this.renderVersions.get(key.id) !== version) {
+			return;
+		}
+		if (!settings.repositoryPath?.trim()) {
+			await key.setImage(IMAGES.setup);
+			return;
+		}
+
+		const agentStatus = agentHandoffManager.getStatus();
+		if (agentStatus.status === "running" && agentStatus.issueId === issue.id) {
+			await key.setImage(IMAGES.agent);
+			return;
+		}
+
+		const status = await detectPrStatus(
+			settings.repositoryPath.trim(),
+			issue.shortId,
+			undefined,
+			settings.githubCliPath
+		);
+		if (this.renderVersions.get(key.id) !== version) {
+			return;
+		}
+		if (
+			status.state === "none"
+			&& agentStatus.status === "sent"
+			&& agentStatus.issueId === issue.id
+			&& agentStatus.launch.requiresPromptPaste
+		) {
+			await key.setImage(IMAGES.paste);
+			return;
+		}
+		await key.setImage(imageForStatus(status));
+	}
+
+	private requestRender(key: KeyAction): Promise<void> {
+		const version = (this.renderVersions.get(key.id) ?? 0) + 1;
+		this.renderVersions.set(key.id, version);
+		return this.render(key, version).catch(async (error: unknown) => {
+			const message = error instanceof Error ? error.message : "Unknown error";
+			streamDeck.logger.error(`View PR render failed: ${message}`);
+			await key.setImage(IMAGES.error);
+		});
+	}
+
+	private stopSubscriptions(actionId: string): void {
+		for (const unsubscribe of this.subscriptions.get(actionId) ?? []) {
+			unsubscribe();
+		}
 		this.subscriptions.delete(actionId);
 	}
 
 	private stopTimer(actionId: string): void {
-		const t = this.timers.get(actionId);
-		if (t) {
-			clearInterval(t);
+		const timer = this.timers.get(actionId);
+		if (timer) {
+			clearInterval(timer);
 			this.timers.delete(actionId);
 		}
+	}
+}
+
+function imageForStatus(status: LoopStatus): string {
+	switch (status.state) {
+		case "draft": return IMAGES.draft;
+		case "ci": return IMAGES.ci;
+		case "ready": return IMAGES.ready;
+		case "fail": return IMAGES.fail;
+		case "merged": return IMAGES.merged;
+		case "closed": return IMAGES.closed;
+		case "error": return IMAGES.error;
+		case "none":
+		default: return IMAGES.none;
 	}
 }

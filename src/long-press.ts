@@ -4,6 +4,7 @@ import {
 	type KeyUpEvent,
 	SingletonAction
 } from "@elgato/streamdeck";
+import streamDeck from "@elgato/streamdeck";
 
 /**
  * Utility base for actions that differentiate short vs long presses.
@@ -38,12 +39,13 @@ export abstract class LongPressAction extends SingletonAction {
 			} else {
 				await this.onShortPress(ev.action as KeyAction);
 			}
-		} catch {
-			// Let subclasses decide how to surface errors in render state.
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Unknown error";
+			streamDeck.logger.error(`Action press failed: ${message}`);
+			await ev.action.showAlert();
 		}
 	}
 
 	protected abstract onShortPress(action: KeyAction): Promise<void>;
 	protected abstract onLongPress(action: KeyAction): Promise<void>;
 }
-

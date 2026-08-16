@@ -8,6 +8,12 @@ export type FileOpenLauncher = (
 	options?: { windowsHide?: boolean }
 ) => Promise<void>;
 
+export type EditorOpenOptions = {
+	kind?: "auto" | "cursor" | "vscode" | "zed" | "xcode" | "system" | "custom";
+	executable?: string;
+	argsTemplate?: string;
+};
+
 async function run(
 	executable: string,
 	args: string[],
@@ -29,19 +35,19 @@ export async function openInEditorOrSystem(
 	repositoryPath: string,
 	relativePath: string,
 	line?: number,
-	launcher: FileOpenLauncher = run
+	launcher: FileOpenLauncher = run,
+	options: EditorOpenOptions = {}
 ): Promise<boolean> {
-	// Reject absolute paths and traversal segments.
+	let file: string;
 	if (isAbsolute(relativePath)) {
-		return false;
+		file = resolve(relativePath);
+	} else {
+		const parts = relativePath.split(/[/\\]+/).filter(Boolean);
+		if (parts.some((p) => p === "..")) {
+			return false;
+		}
+		file = resolve(repositoryPath, parts.join(sep));
 	}
-	const parts = relativePath.split(/[/\\]+/).filter(Boolean);
-	if (parts.some((p) => p === "..")) {
-		return false;
-	}
-	// Normalise separators and resolve to an absolute path.
-	const normalised = parts.join(sep);
-	const file = resolve(repositoryPath, normalised);
 	// Verify the resolved path stays under the repository path.
 	const rel = relative(repositoryPath, file);
 	if (rel.startsWith("..") || isAbsolute(rel)) {
@@ -53,27 +59,64 @@ export async function openInEditorOrSystem(
 		return false;
 	}
 
-	// Prefer Cursor CLI if on PATH.
-	try {
-		const arg = line && line > 0 ? `${file}:${line}` : file;
-		await launcher("cursor", [arg], { windowsHide: true });
-		return true;
-	} catch {
-		// Fallback: OS opener
-		const platform = process.platform;
+	const kind = options.kind ?? "auto";
+	const candidates = kind === "auto"
+		? ["cursor", "vscode", "zed", "system"] as const
+		: [kind];
+	for (const candidate of candidates) {
 		try {
-			if (platform === "darwin") {
-				await launcher("open", [file], { windowsHide: true });
-				return true;
-			}
-			if (platform === "win32") {
-				await launcher("cmd.exe", ["/c", "start", "", file], { windowsHide: true });
-				return true;
-			}
-			await launcher("xdg-open", [file], { windowsHide: true });
+			const command = editorCommand(candidate, file, repositoryPath, line, options);
+			await launcher(command.executable, command.args, { windowsHide: true });
 			return true;
 		} catch {
-			return false;
+			// Auto mode tries the next editor. Explicit modes fail closed.
+			if (kind !== "auto") {
+				return false;
+			}
 		}
 	}
+	return false;
+}
+
+function editorCommand(
+	kind: NonNullable<EditorOpenOptions["kind"]>,
+	file: string,
+	repositoryPath: string,
+	line: number | undefined,
+	options: EditorOpenOptions
+): { executable: string; args: string[] } {
+	const location = line && line > 0 ? `${file}:${line}` : file;
+	const executable = options.executable?.trim();
+	switch (kind) {
+		case "cursor": return { executable: executable || "cursor", args: ["--goto", location] };
+		case "vscode": return { executable: executable || "code", args: ["--goto", location] };
+		case "zed": return { executable: executable || "zed", args: [location] };
+		case "xcode": return {
+			executable: executable || "xed",
+			args: line && line > 0 ? ["--line", String(line), file] : [file]
+		};
+		case "custom": {
+			if (!executable) {
+				throw new Error("Custom editor executable is missing");
+			}
+			const template = options.argsTemplate?.trim() || "{file}";
+			return {
+				executable,
+				args: splitTemplate(template).map((arg) => arg
+					.replaceAll("{file}", file)
+					.replaceAll("{line}", line && line > 0 ? String(line) : "")
+					.replaceAll("{repo}", repositoryPath))
+			};
+		}
+		case "system":
+		default:
+			if (process.platform === "darwin") return { executable: "open", args: [file] };
+			if (process.platform === "win32") return { executable: "cmd.exe", args: ["/c", "start", "", file] };
+			return { executable: "xdg-open", args: [file] };
+	}
+}
+
+function splitTemplate(value: string): string[] {
+	const matches = value.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) ?? [];
+	return matches.map((part) => part.replace(/^(?:"(.*)"|'(.*)')$/, "$1$2"));
 }

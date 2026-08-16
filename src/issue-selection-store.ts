@@ -29,16 +29,22 @@ class IssueSelectionStore {
 		};
 	}
 
-	select(issueId: string): void {
-		this.publish(this.selection.select(issueId));
+	select(issueId: string): IssueSelectionSnapshot {
+		const snapshot = this.selection.select(issueId);
+		this.publish(snapshot);
+		return snapshot;
 	}
 
-	previous(): void {
-		this.publish(this.selection.previous());
+	previous(): IssueSelectionSnapshot {
+		const snapshot = this.selection.previous();
+		this.publish(snapshot);
+		return snapshot;
 	}
 
-	next(): void {
-		this.publish(this.selection.next());
+	next(): IssueSelectionSnapshot {
+		const snapshot = this.selection.next();
+		this.publish(snapshot);
+		return snapshot;
 	}
 
 	getSnapshot(): IssueSelectionSnapshot {

@@ -47,14 +47,14 @@ test("second start while running is a no-op (busy)", async () => {
 		firstStart = agentHandoffManager.start(issue, {
 			organizationSlug: "acme",
 			projectSlug: "web",
-			repositoryPath: "/repo",
+			repositoryPath: process.cwd(),
 			agentCliPath: "agent"
 		}, undefined, slowLauncher);
 		await launchStarted;
 		await agentHandoffManager.start(issue, {
 			organizationSlug: "acme",
 			projectSlug: "web",
-			repositoryPath: "/repo",
+			repositoryPath: process.cwd(),
 			agentCliPath: "agent"
 		}, undefined, slowLauncher);
 		assert.equal(launches, 1, "should not start a second launch while running");
