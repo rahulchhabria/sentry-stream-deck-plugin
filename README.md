@@ -81,10 +81,11 @@ Operates on the selected issue:
 
 ## Requirements
 
-- Node.js 24 or newer
 - Stream Deck 7.1 or newer
 - A Sentry auth token with `event:read` and `project:read` scopes
 - For RESOLVE, add `event:write` to resolve/archive.
+- Optional: a supported local coding-agent CLI, GitHub CLI, and IDE for the
+  AGENT, VIEW PR, and CODE actions.
 
 ## Configure
 
@@ -127,6 +128,8 @@ plugin never auto-launches an agent when flashing.
 
 ## Develop
 
+Development requires Node.js 24 or newer.
+
 Install and verify Elgato's official Stream Deck CLI:
 
 ```sh
@@ -163,11 +166,11 @@ npm run lint     # Elgato's recommended ESLint configuration
 npm run sim      # opens an interactive browser simulator of the key states
 ```
 
-`npm run sim` renders the Error Pulse visuals and lets you exercise the flash /
-acknowledge / clear / error behaviour without a physical device. Coordinated
-six-key behavior requires Stream Deck hardware, Mobile, or a Virtual Device;
-selection, editor launch, Agent handoff, and PR-state behavior are covered by
-the Node test suite.
+`npm run sim` renders an interactive six-key preview with synthetic states and
+short/long-press interactions. It does not execute live Sentry, IDE, agent, or
+GitHub integrations. Use Stream Deck hardware, Mobile, or a Virtual Device for
+end-to-end coordinated-key testing; those workflows also have Node regression
+coverage.
 
 Run every automated build and packaging gate with:
 
@@ -185,10 +188,14 @@ Upload that file at <https://marketplace.elgato.com/maker>.
 
 ## Before submitting to the Marketplace
 
-- [ ] Re-prefix the plugin UUID to an identity you control (see below).
+- [ ] Confirm `com.rahulchhabria.sentry-human-loop` is the permanent UUID and
+      uses an identity controlled by the publishing organization (see below).
+- [ ] Ensure `Author` exactly matches the Maker Console organization name.
 - [ ] Confirm Sentry trademark/branding usage is cleared.
-- [ ] Prepare listing assets in the Maker portal: description, category,
-      screenshot(s) of the key in action, support URL.
+- [ ] Upload the 288×288 app icon, 1920×960 thumbnail, and three 1920×960
+      gallery images from the prepared release bundle.
+- [ ] Add a public, resolvable support URL in Maker Console (and optionally the
+      manifest) before submission; the repository is not currently public.
 - [ ] Bump `Version` in `manifest.json` (4-part, e.g. `0.1.1.0`) and the
       `package.json` `version` on each release.
 - [ ] Run the full gate: `npm run check`, then `npm run pack` for the release artifact.

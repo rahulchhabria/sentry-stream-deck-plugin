@@ -7,7 +7,7 @@
 		{
 			"Name": "Pulse",
 			"UUID": "com.rahulchhabria.sentry-human-loop.error-pulse",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/pulse/icon",
 			"Tooltip": "Flashes on genuinely new Sentry issues; short press acknowledges and selects; long press toggles mute.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
@@ -23,7 +23,7 @@
 		{
 			"Name": "Inspect Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/inspect/icon",
 			"Tooltip": "Opens the selected issue in Sentry.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
@@ -39,7 +39,7 @@
 		{
 			"Name": "Code",
 			"UUID": "com.rahulchhabria.sentry-human-loop.next-issue",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/code/icon",
 			"Tooltip": "Opens the selected issue's best local source frame in your configured IDE.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
@@ -55,7 +55,7 @@
 		{
 			"Name": "Agent",
 			"UUID": "com.rahulchhabria.sentry-human-loop.send-to-agent",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/agent/icon",
 			"Tooltip": "Sends the selected issue to your local coding agent via CLI. Long press explicitly asks for a draft PR.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
@@ -71,7 +71,7 @@
 		{
 			"Name": "View PR",
 			"UUID": "com.rahulchhabria.sentry-human-loop.loop",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/pr/icon",
 			"Tooltip": "Opens the selected issue's PR and shows CI status. If no PR exists, asks the configured agent to validate local changes and create a draft PR.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
@@ -87,7 +87,7 @@
 		{
 			"Name": "Resolve",
 			"UUID": "com.rahulchhabria.sentry-human-loop.done",
-			"Icon": "imgs/actions/counter/icon",
+			"Icon": "imgs/actions/resolve/icon",
 			"Tooltip": "Resolve (short) or archive (long) the selected issue via a two-press confirmation. Requires event:write.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
@@ -102,7 +102,7 @@
 		}
 	],
 	"Category": "Sentry",
-	"CategoryIcon": "imgs/plugin/category-icon",
+	"CategoryIcon": "imgs/plugin/category-list",
 	"CodePath": "bin/plugin.js",
 	"Description": "A 6-key human-in-the-loop pipeline for Sentry on a Stream Deck: NEW ISSUE / INSPECT / CODE / AGENT / VIEW PR / RESOLVE. Inspect new issues, open their source, hand off to a local agent, follow PR status, and resolve/archive.",
 	"Icon": "imgs/plugin/marketplace",
