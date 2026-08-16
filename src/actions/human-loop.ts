@@ -1,6 +1,7 @@
 import streamDeck, {
 	action,
-	type KeyAction,
+	type KeyDownEvent,
+	SingletonAction,
 	type WillAppearEvent,
 	type WillDisappearEvent
 } from "@elgato/streamdeck";
@@ -8,10 +9,13 @@ import streamDeck, {
 import type { IssueSelectionSnapshot } from "../issue-selection";
 import { issueSelectionStore } from "../issue-selection-store";
 import { createActionIcon } from "../key-visual";
-import { getLatestIssueEvent, getProjectIssuesUrl } from "../sentry-api";
+import {
+	getEventFrames,
+	getLatestIssueEvent,
+	getProjectIssuesUrl,
+	type SentryEventFrame
+} from "../sentry-api";
 import { getSentrySettings, hasRequiredSettings } from "../settings";
-import { LongPressAction } from "../long-press";
-import { openInEditorOrSystem } from "../open-file";
 
 /**
  * Safe fallback for the human-in-the-loop action.
@@ -21,12 +25,8 @@ import { openInEditorOrSystem } from "../open-file";
  * opens the selected issue in Sentry for review.
  */
 @action({ UUID: "com.rahulchhabria.sentry-human-loop.review-issue" })
-export class SelectedIssue extends LongPressAction {
+export class SelectedIssue extends SingletonAction {
 	private readonly subscriptions = new Map<string, () => void>();
-
-	constructor() {
-		super(700);
-	}
 
 	override onWillAppear(ev: WillAppearEvent): void {
 		if (!ev.action.isKey()) {
@@ -35,7 +35,7 @@ export class SelectedIssue extends LongPressAction {
 
 		this.stopSubscription(ev.action.id);
 		const unsubscribe = issueSelectionStore.subscribe(
-			(snapshot) => this.render(ev.action as KeyAction, snapshot)
+			(snapshot) => this.render(ev.action, snapshot)
 		);
 		this.subscriptions.set(ev.action.id, unsubscribe);
 	}
@@ -44,7 +44,8 @@ export class SelectedIssue extends LongPressAction {
 		this.stopSubscription(ev.action.id);
 	}
 
-	protected override async onShortPress(action: KeyAction): Promise<void> {
+	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
+		const key = ev.action;
 		const snapshot = issueSelectionStore.getSnapshot();
 		const issue = snapshot.selectedIssue;
 		if (issue) {
@@ -54,49 +55,13 @@ export class SelectedIssue extends LongPressAction {
 
 		const settings = await getSentrySettings();
 		if (!hasRequiredSettings(settings)) {
-			await action.showAlert();
+			await key.showAlert();
 			return;
 		}
 		await streamDeck.system.openUrl(getProjectIssuesUrl(settings));
 	}
 
-	protected override async onLongPress(action: KeyAction): Promise<void> {
-		const issue = issueSelectionStore.getSnapshot().selectedIssue;
-		const settings = await getSentrySettings();
-		if (!issue || !hasRequiredSettings(settings) || !settings.repositoryPath?.trim()) {
-			await action.showAlert();
-			return;
-		}
-		try {
-			const event = await getLatestIssueEvent(settings, issue.id);
-			const frame = pickBestFrame(event);
-			const framePath = frame?.absPath || frame?.filename;
-			if (!framePath) {
-				await action.showAlert();
-				return;
-			}
-			const opened = await openInEditorOrSystem(
-				settings.repositoryPath.trim(),
-				normalisePath(framePath),
-				frame.lineno,
-				undefined,
-				{
-					kind: settings.editorKind,
-					executable: settings.editorCliPath,
-					argsTemplate: settings.editorArgs
-				}
-			);
-			if (!opened) {
-				await action.showAlert();
-			}
-		} catch (error) {
-			const message = error instanceof Error ? error.message : "Unknown error";
-			streamDeck.logger.error(`Inspect IDE failed for ${issue.shortId}: ${message}`);
-			await action.showAlert();
-		}
-	}
-
-	private async render(key: KeyAction, snapshot: IssueSelectionSnapshot): Promise<void> {
+	private async render(key: WillAppearEvent["action"], snapshot: IssueSelectionSnapshot): Promise<void> {
 		if (snapshot.source.status === "unconfigured") {
 			await Promise.all([
 				key.setTitle(""),
@@ -153,41 +118,54 @@ function positiveCount(value: number | undefined): string | undefined {
 	return typeof value === "number" && value > 0 ? String(value) : undefined;
 }
 
-function pickBestFrame(event: Awaited<ReturnType<typeof getLatestIssueEvent>>): {
-	filename?: string;
-	absPath?: string;
-	lineno?: number;
-} | undefined {
-	const values = event?.exception?.values ?? [];
-	for (const ex of values) {
-		const frames = ex.stacktrace?.frames ?? [];
-		// Prefer in_app frames towards the bottom (most recent call last).
-		for (let i = frames.length - 1; i >= 0; i -= 1) {
-			const f = frames[i]!;
-			if (f.in_app && (f.abs_path || f.filename)) {
-				return { filename: f.filename, absPath: f.abs_path, lineno: f.lineno };
-			}
+export function pickBestFrame(
+	event: Awaited<ReturnType<typeof getLatestIssueEvent>>
+): SentryEventFrame | undefined {
+	const frames = getEventFrames(event);
+	// Frames are oldest-to-newest; prefer the newest in-app frame with a path.
+	for (let i = frames.length - 1; i >= 0; i -= 1) {
+		const frame = frames[i]!;
+		if (frame.inApp && sourcePathCandidates(frame).length > 0) {
+			return frame;
 		}
-		// Otherwise any frame with a filename.
-		for (let i = frames.length - 1; i >= 0; i -= 1) {
-			const f = frames[i]!;
-			if (f.abs_path || f.filename) {
-				return { filename: f.filename, absPath: f.abs_path, lineno: f.lineno };
-			}
+	}
+	for (let i = frames.length - 1; i >= 0; i -= 1) {
+		const frame = frames[i]!;
+		if (sourcePathCandidates(frame).length > 0) {
+			return frame;
 		}
 	}
 	return undefined;
 }
 
-function normalisePath(path: string): string {
-	if (path.startsWith("file://")) {
+export function sourcePathCandidates(frame: SentryEventFrame): string[] {
+	return [...new Set([frame.filename, frame.absPath]
+		.filter((path): path is string => Boolean(path))
+		.map(normalisePath)
+		.filter((path): path is string => Boolean(path)))];
+}
+
+function normalisePath(path: string): string | undefined {
+	const trimmed = path.trim();
+	if (!trimmed || /^<.*>$/.test(trimmed)) {
+		return undefined;
+	}
+	if (trimmed.startsWith("file://")) {
 		try {
-			return new URL(path).pathname;
+			return decodeURIComponent(new URL(trimmed).pathname);
 		} catch {
 			// Continue with prefix cleanup.
 		}
 	}
-	return path
+	if (/^https?:\/\//i.test(trimmed)) {
+		try {
+			return decodeURIComponent(new URL(trimmed).pathname).replace(/^\/+/, "");
+		} catch {
+			return undefined;
+		}
+	}
+	return trimmed
 		.replace(/^(?:webpack|app|vite):\/{2,3}(?:\.\/)?/, "")
+		.replace(/^(?:\.\.\/)+/, "")
 		.replace(/^\.\//, "");
 }

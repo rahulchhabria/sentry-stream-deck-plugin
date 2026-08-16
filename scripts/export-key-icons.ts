@@ -9,7 +9,7 @@ const output = join(root, "assets", "streamdeck-icons");
 const icons: Array<{ name: ActionIconName; color: string }> = [
 	{ name: "pulse", color: "#ff375f" },
 	{ name: "inspect", color: "#a78bfa" },
-	{ name: "next", color: "#60a5fa" },
+	{ name: "code", color: "#60a5fa" },
 	{ name: "agent", color: "#ff3d9a" },
 	{ name: "pr", color: "#38bdf8" },
 	{ name: "resolve", color: "#34d399" }

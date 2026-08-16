@@ -29,27 +29,60 @@ export type IssuePage = {
  * Minimal shape of a Sentry event body for stack parsing.
  * Only the fields needed to locate a likely culprit file are included.
  */
+export type SentryEventFrame = {
+	filename?: string;
+	absPath?: string;
+	lineno?: number;
+	inApp?: boolean;
+};
+
+type RawSentryEventFrame = {
+	filename?: string;
+	abs_path?: string;
+	absPath?: string;
+	in_app?: boolean;
+	inApp?: boolean;
+	lineno?: number;
+	lineNo?: number;
+};
+
+type RawExceptionValue = {
+	stacktrace?: { frames?: RawSentryEventFrame[] };
+};
+
 export type SentryEvent = {
 	id?: string;
 	title?: string;
 	platform?: string;
 	logentry?: { formatted?: string };
 	exception?: {
-		values?: Array<{
-			type?: string;
-			value?: string;
-			stacktrace?: {
-				frames?: Array<{
-					filename?: string;
-					abs_path?: string;
-					function?: string;
-					in_app?: boolean;
-					lineno?: number;
-				}>;
-			};
-		}>;
+		values?: RawExceptionValue[];
 	};
+	/** Sentry's issue-event API returns exception data in this entry list. */
+	entries?: Array<{
+		type?: string;
+		data?: { values?: RawExceptionValue[] };
+	}>;
 };
+
+/** Normalizes envelope-style and issue-event API stack frame field names. */
+export function getEventFrames(event: SentryEvent | undefined): SentryEventFrame[] {
+	if (!event) {
+		return [];
+	}
+	const values = [
+		...(event.exception?.values ?? []),
+		...(event.entries ?? [])
+			.filter((entry) => entry.type?.toLowerCase() === "exception")
+			.flatMap((entry) => entry.data?.values ?? [])
+	];
+	return values.flatMap((value) => value.stacktrace?.frames ?? []).map((frame) => ({
+		filename: frame.filename,
+		absPath: frame.absPath ?? frame.abs_path,
+		lineno: frame.lineNo ?? frame.lineno,
+		inApp: frame.inApp ?? frame.in_app
+	}));
+}
 
 export class SentryApiError extends Error {
 	constructor(

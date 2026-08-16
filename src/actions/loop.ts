@@ -8,6 +8,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 
 import { agentHandoffManager } from "../agent-handoff-manager";
+import { launchInTerminal } from "../agent-handoff";
 import { issueSelectionStore } from "../issue-selection-store";
 import { createActionIcon } from "../key-visual";
 import { detectPrStatus, type LoopStatus } from "../pr-status";
@@ -26,6 +27,10 @@ const IMAGES = {
 	merged: createActionIcon("pr", { color: "#34d399", glow: true, label: "MERGED" }),
 	closed: createActionIcon("pr", { color: "#60646c", dimmed: true, label: "CLOSED" }),
 	error: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "PR ERR" }),
+	auth: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "GH AUTH" }),
+	login: createActionIcon("pr", { color: "#38bdf8", glow: true, label: "LOGIN" }),
+	missingCli: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "GH CLI" }),
+	network: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "NET ERR" }),
 	setup: createActionIcon("pr", { color: "#f59e0b", dimmed: true, label: "SETUP" })
 };
 
@@ -85,7 +90,7 @@ export class LoopStatusAction extends SingletonAction {
 		}
 		if (status.state === "error") {
 			streamDeck.logger.error(`View PR lookup failed for ${issue.shortId}: ${status.message ?? "Unknown error"}`);
-			await key.setImage(IMAGES.error);
+			await this.handlePrError(key, status, settings.repositoryPath.trim(), settings);
 			return;
 		}
 
@@ -97,6 +102,36 @@ export class LoopStatusAction extends SingletonAction {
 		await key.setImage(IMAGES.agent);
 		await agentHandoffManager.start(issue, settings, { requestDraftPr: true });
 		await this.requestRender(key);
+	}
+
+	private async handlePrError(
+		key: KeyAction,
+		status: LoopStatus,
+		repositoryPath: string,
+		settings: Awaited<ReturnType<typeof getSentrySettings>>
+	): Promise<void> {
+		switch (status.errorKind) {
+			case "auth":
+				await key.setImage(IMAGES.login);
+				await launchInTerminal(
+					{ executable: status.executable || "/opt/homebrew/bin/gh", args: ["auth", "login", "-h", "github.com"] },
+					repositoryPath,
+					settings
+				);
+				return;
+			case "missing-cli":
+				await key.setImage(IMAGES.missingCli);
+				await streamDeck.system.openUrl("https://cli.github.com/");
+				return;
+			case "network":
+				await key.setImage(IMAGES.network);
+				await streamDeck.system.openUrl("https://www.githubstatus.com/");
+				return;
+			case "command":
+			default:
+				await key.setImage(IMAGES.error);
+				await key.showAlert();
+		}
 	}
 
 	private async render(key: KeyAction, version: number): Promise<void> {
@@ -175,7 +210,13 @@ function imageForStatus(status: LoopStatus): string {
 		case "fail": return IMAGES.fail;
 		case "merged": return IMAGES.merged;
 		case "closed": return IMAGES.closed;
-		case "error": return IMAGES.error;
+		case "error":
+			switch (status.errorKind) {
+				case "auth": return IMAGES.auth;
+				case "missing-cli": return IMAGES.missingCli;
+				case "network": return IMAGES.network;
+				default: return IMAGES.error;
+			}
 		case "none":
 		default: return IMAGES.none;
 	}

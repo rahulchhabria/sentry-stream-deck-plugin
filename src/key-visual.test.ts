@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { createActionIcon, createActionIconSvg, type ActionIconName } from "./key-visual";
 
-const names: ActionIconName[] = ["pulse", "inspect", "next", "agent", "pr", "resolve"];
+const names: ActionIconName[] = ["pulse", "inspect", "code", "agent", "pr", "resolve"];
 
 test("creates a distinct normal and glow SVG for every action icon", () => {
 	for (const name of names) {
@@ -31,7 +31,7 @@ test("renders labels and optional values inside the icon", () => {
 });
 
 test("uses one consistent stroke across outlined action icons", () => {
-	for (const name of ["inspect", "next", "agent", "pr", "resolve"] as const) {
+	for (const name of ["inspect", "code", "agent", "pr", "resolve"] as const) {
 		const svg = createActionIconSvg(name, { color: "#fff" });
 		assert.match(svg, /stroke-width="16"/);
 	}

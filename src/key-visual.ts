@@ -4,7 +4,7 @@ type KeyVisual = {
 	label: string;
 };
 
-export type ActionIconName = "pulse" | "inspect" | "next" | "agent" | "pr" | "resolve";
+export type ActionIconName = "pulse" | "inspect" | "code" | "agent" | "pr" | "resolve";
 
 type ActionIconOptions = {
 	color: string;
@@ -17,7 +17,7 @@ type ActionIconOptions = {
 const ACTION_LABELS: Record<ActionIconName, string> = {
 	pulse: "NEW ISSUE",
 	inspect: "INSPECT",
-	next: "NEXT",
+	code: "CODE",
 	agent: "AGENT",
 	pr: "VIEW PR",
 	resolve: "RESOLVE"
@@ -34,9 +34,10 @@ const ACTION_GLYPHS: Record<ActionIconName, string> = {
 		'<path d="M192 226h30a18 18 0 0 0 18-18v-30"/>',
 		'<circle cx="144" cy="144" r="28" fill="currentColor" stroke="none"/>'
 	].join(""),
-	next: [
-		'<path d="m72 72 72 72-72 72"/>',
-		'<path d="m136 72 72 72-72 72"/>'
+	code: [
+		'<path d="m112 88-56 56 56 56"/>',
+		'<path d="m176 88 56 56-56 56"/>',
+		'<path d="m162 66-36 156"/>'
 	].join(""),
 	agent: [
 		'<rect x="62" y="78" width="164" height="140" rx="32"/>',

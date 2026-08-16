@@ -12,6 +12,8 @@ export type EditorOpenOptions = {
 	kind?: "auto" | "cursor" | "vscode" | "zed" | "xcode" | "system" | "custom";
 	executable?: string;
 	argsTemplate?: string;
+	/** Test seam for platform-specific editor application fallbacks. */
+	platform?: NodeJS.Platform;
 };
 
 async function run(
@@ -64,56 +66,82 @@ export async function openInEditorOrSystem(
 		? ["cursor", "vscode", "zed", "system"] as const
 		: [kind];
 	for (const candidate of candidates) {
-		try {
-			const command = editorCommand(candidate, file, repositoryPath, line, options);
-			await launcher(command.executable, command.args, { windowsHide: true });
-			return true;
-		} catch {
-			// Auto mode tries the next editor. Explicit modes fail closed.
-			if (kind !== "auto") {
-				return false;
+		for (const command of editorCommands(candidate, file, repositoryPath, line, options)) {
+			try {
+				await launcher(command.executable, command.args, { windowsHide: true });
+				return true;
+			} catch {
+				// Try a macOS application adapter or the next auto-detected editor.
 			}
+		}
+		if (kind !== "auto") {
+			return false;
 		}
 	}
 	return false;
 }
 
-function editorCommand(
+function editorCommands(
 	kind: NonNullable<EditorOpenOptions["kind"]>,
 	file: string,
 	repositoryPath: string,
 	line: number | undefined,
 	options: EditorOpenOptions
-): { executable: string; args: string[] } {
+): Array<{ executable: string; args: string[] }> {
 	const location = line && line > 0 ? `${file}:${line}` : file;
 	const executable = options.executable?.trim();
+	const platform = options.platform ?? process.platform;
 	switch (kind) {
-		case "cursor": return { executable: executable || "cursor", args: ["--goto", location] };
-		case "vscode": return { executable: executable || "code", args: ["--goto", location] };
-		case "zed": return { executable: executable || "zed", args: [location] };
-		case "xcode": return {
+		case "cursor": return executable
+			? [{ executable, args: ["--goto", location] }]
+			: withMacApp({ executable: "cursor", args: ["--goto", location] }, "Cursor", ["--goto", location], platform);
+		case "vscode": return executable
+			? [{ executable, args: ["--goto", location] }]
+			: withMacApp(
+				{ executable: "code", args: ["--goto", location] },
+				"Visual Studio Code",
+				["--goto", location],
+				platform
+			);
+		case "zed": return executable
+			? [{ executable, args: [location] }]
+			: withMacApp({ executable: "zed", args: [location] }, "Zed", [location], platform);
+		case "xcode": return withMacApp({
 			executable: executable || "xed",
 			args: line && line > 0 ? ["--line", String(line), file] : [file]
-		};
+		}, "Xcode", [file], platform, Boolean(executable));
 		case "custom": {
 			if (!executable) {
 				throw new Error("Custom editor executable is missing");
 			}
 			const template = options.argsTemplate?.trim() || "{file}";
-			return {
+			return [{
 				executable,
 				args: splitTemplate(template).map((arg) => arg
 					.replaceAll("{file}", file)
 					.replaceAll("{line}", line && line > 0 ? String(line) : "")
 					.replaceAll("{repo}", repositoryPath))
-			};
+			}];
 		}
 		case "system":
 		default:
-			if (process.platform === "darwin") return { executable: "open", args: [file] };
-			if (process.platform === "win32") return { executable: "cmd.exe", args: ["/c", "start", "", file] };
-			return { executable: "xdg-open", args: [file] };
+			if (platform === "darwin") return [{ executable: "open", args: [file] }];
+			if (platform === "win32") return [{ executable: "cmd.exe", args: ["/c", "start", "", file] }];
+			return [{ executable: "xdg-open", args: [file] }];
 	}
+}
+
+function withMacApp(
+	cli: { executable: string; args: string[] },
+	appName: string,
+	appArgs: string[],
+	platform: NodeJS.Platform,
+	explicitExecutable = false
+): Array<{ executable: string; args: string[] }> {
+	if (platform !== "darwin" || explicitExecutable) {
+		return [cli];
+	}
+	return [cli, { executable: "open", args: ["-a", appName, "--args", ...appArgs] }];
 }
 
 function splitTemplate(value: string): string[] {

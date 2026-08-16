@@ -1,8 +1,8 @@
 # Sentry for Stream Deck
 
 A physical, six-key human-in-the-loop pipeline for Sentry. The plugin watches a
-project, flashes when a **new** unresolved issue fires, lets you walk the
-highest-pain issues, hands off to a local coding agent, follows PR status, and
+project, flashes when a **new** unresolved issue fires, opens the selected
+issue and its source, hands off to a local coding agent, follows PR status, and
 can resolve/archive issues when you're done.
 
 ## Actions
@@ -10,7 +10,7 @@ can resolve/archive issues when you're done.
 Layout for a 6‑key Stream Deck:
 
 ```
-NEW ISSUE INSPECT NEXT
+NEW ISSUE INSPECT CODE
 AGENT     VIEW PR RESOLVE
 ```
 
@@ -22,21 +22,19 @@ Shares a single poll of Sentry's v0 Issues API every 15 seconds. The key:
 - **flashes** red on genuinely new issues (the existing backlog at startup is baselined);
 - while flashing, shows a count of new issues;
 - short press: acknowledges the flash and selects the newest new issue (does not open a browser);
-- long press (~700ms): toggles a session‑local **MUTE** state (no flash; still polls and updates INSPECT/NEXT);
+- long press (~700ms): toggles a session‑local **MUTE** state (no flash; still polls and updates INSPECT/CODE);
 - glows green (**QUIET**) when the project has no unresolved issues;
 - shows **AUTH**, **RATE**, or **API ERR** when the Sentry API rejects the request.
 
-### Inspect / Next Issue
+### Inspect / Code
 
-Walk a shared selection through the highest‑pain issues in Sentry's 100 most
-recently active unresolved issues (ordered by `userCount`, then total `count`,
-then recency). The selection remains stable
-across refreshes and during transient API failures.
+Pulse maintains a shared selected issue. The selection remains stable across
+refreshes and during transient API failures, and advances automatically when a
+resolved issue disappears from the queue.
 
-- INSPECT short press always opens the selected issue in Sentry. Long press
-  opens the best source location from the latest event in the configured IDE.
-- NEXT short press selects the next issue; long press selects the previous issue
-  (both wrap). The key briefly glows and logs the selected short ID.
+- INSPECT opens the selected issue in Sentry.
+- CODE fetches the selected issue's latest event, maps its best in-app frame to
+  the configured repository, and opens that file and line in the configured IDE.
 
 ### Agent
 
@@ -68,7 +66,9 @@ short ID using the GitHub CLI (`gh`). It shows **NO PR**, **DRAFT**, **CI**,
 - If no PR exists, pressing the key brings the configured agent interface forward
   with a prompt to preserve and validate existing local changes, commit, push,
   and open a draft PR.
-- GitHub CLI/auth/network failures show **PR ERR** and never trigger an agent.
+- GitHub failures are actionable: **GH AUTH** opens `gh auth login` in the
+  configured terminal, **GH CLI** opens installation help, and **NET ERR** opens
+  GitHub Status. Unknown command failures remain **PR ERR** and never trigger an agent.
 
 ### Resolve
 
@@ -97,7 +97,7 @@ Inspector settings (stored in Stream Deck global settings, shared by all actions
 | **Auth Token** | Required. Sentry auth token with the scopes above. |
 | **Organization** | Required. Organization slug. |
 | **Project** | Required. Project slug. |
-| **Repository** | Absolute path to the local repository used by Inspect, Agent, and View PR. |
+| **Repository** | Absolute path to the local repository used by Code, Agent, and View PR. |
 | **Sentry CLI** | Optional executable or absolute path. Defaults to `sentry`. An absolute path is often more reliable when Stream Deck does not inherit the shell's `PATH`. |
 | **GitHub CLI** | Optional executable or absolute path used by View PR. On macOS the plugin checks common Homebrew paths before relying on `PATH`. |
 | **Agent CLI** | Optional executable or absolute path to your coding agent. Defaults to `agent` (Cursor CLI). Absolute paths are recommended. |
@@ -106,7 +106,7 @@ Inspector settings (stored in Stream Deck global settings, shared by all actions
 | **Launch In** | Terminal interface, Codex Desktop, or direct/no-interface mode. |
 | **Terminal** | Auto-detect, Ghostty, Terminal.app, iTerm2, or a custom application. |
 | **Terminal App** | Application name for the custom-terminal adapter. |
-| **Inspect IDE** | Auto-detect, Cursor, VS Code, Zed, Xcode, system default, or custom CLI. |
+| **Code IDE** | Auto-detect, Cursor, VS Code, Zed, Xcode, system default, or custom CLI. |
 | **IDE CLI** | Optional executable override for the selected editor. |
 | **IDE Args** | Custom argument template supporting `{file}`, `{line}`, and `{repo}`. |
 

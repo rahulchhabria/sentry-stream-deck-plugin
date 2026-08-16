@@ -65,3 +65,27 @@ test("accepts absolute source paths only when they remain inside the repository"
 		assert.equal(ok, true);
 	});
 });
+
+test("falls back to the configured macOS editor app when its CLI is not on PATH", async () => {
+	await withRepo(async (repo) => {
+		const file = join(repo, "src", "app.ts");
+		await mkdir(join(repo, "src"));
+		await writeFile(file, "ok", "utf8");
+		const calls: Array<{ executable: string; args: string[] }> = [];
+		const ok = await openInEditorOrSystem(
+			repo,
+			"src/app.ts",
+			12,
+			async (executable, args) => {
+				calls.push({ executable, args });
+				if (executable === "cursor") throw new Error("ENOENT");
+			},
+			{ kind: "cursor", platform: "darwin" }
+		);
+		assert.equal(ok, true);
+		assert.deepEqual(calls, [
+			{ executable: "cursor", args: ["--goto", `${file}:12`] },
+			{ executable: "open", args: ["-a", "Cursor", "--args", "--goto", `${file}:12`] }
+		]);
+	});
+});

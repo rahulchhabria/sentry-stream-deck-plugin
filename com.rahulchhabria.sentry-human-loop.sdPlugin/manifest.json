@@ -24,7 +24,7 @@
 			"Name": "Inspect Issue",
 			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Short press opens the selected issue in Sentry. Long press opens its best source location in your configured IDE.",
+			"Tooltip": "Opens the selected issue in Sentry.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -37,10 +37,10 @@
 			]
 		},
 		{
-			"Name": "Next Issue",
+			"Name": "Code",
 			"UUID": "com.rahulchhabria.sentry-human-loop.next-issue",
 			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Short press selects the next highest-pain unresolved issue; long press selects the previous issue (wraps).",
+			"Tooltip": "Opens the selected issue's best local source frame in your configured IDE.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
 			"Controllers": [
 				"Keypad"
@@ -104,7 +104,7 @@
 	"Category": "Sentry",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
-	"Description": "A 6-key human-in-the-loop pipeline for Sentry on a Stream Deck: NEW ISSUE / INSPECT / NEXT / AGENT / VIEW PR / RESOLVE. Navigate highest-pain issues, hand off to a local agent, follow draft PR status, and resolve/archive.",
+	"Description": "A 6-key human-in-the-loop pipeline for Sentry on a Stream Deck: NEW ISSUE / INSPECT / CODE / AGENT / VIEW PR / RESOLVE. Inspect new issues, open their source, hand off to a local agent, follow PR status, and resolve/archive.",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {

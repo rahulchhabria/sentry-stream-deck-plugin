@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { detectPrStatus, type GhRunner } from "./pr-status";
+import {
+	classifyGitHubError,
+	detectPrStatus,
+	resolveGitHubCli,
+	type GhRunner
+} from "./pr-status";
 
 const repo = "/work/repo";
 
@@ -91,4 +96,18 @@ test("uses the configured GitHub CLI path", async () => {
 	}, "/custom/bin/gh");
 	assert.equal(status.state, "none");
 	assert.equal(executable, "/custom/bin/gh");
+});
+
+test("resolves a bare gh setting to the Homebrew path on macOS", async () => {
+	const executable = await resolveGitHubCli("gh", "darwin", async (path) => {
+		if (path !== "/opt/homebrew/bin/gh") throw new Error("missing");
+	});
+	assert.equal(executable, "/opt/homebrew/bin/gh");
+});
+
+test("classifies actionable GitHub CLI failures", () => {
+	assert.equal(classifyGitHubError("spawn gh ENOENT"), "missing-cli");
+	assert.equal(classifyGitHubError("HTTP 401: Bad credentials; run gh auth login"), "auth");
+	assert.equal(classifyGitHubError("error connecting to api.github.com"), "network");
+	assert.equal(classifyGitHubError("unexpected GraphQL shape"), "command");
 });

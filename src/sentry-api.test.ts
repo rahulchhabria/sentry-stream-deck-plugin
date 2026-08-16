@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 
-import { getProjectIssuesUrl, getUnresolvedIssues, SentryApiError } from "./sentry-api";
+import {
+	getEventFrames,
+	getProjectIssuesUrl,
+	getUnresolvedIssues,
+	SentryApiError
+} from "./sentry-api";
 import type { ConfiguredSentrySettings } from "./settings";
 
 const originalFetch = globalThis.fetch;
@@ -190,4 +195,30 @@ test("getProjectIssuesUrl builds a region-aware, project-filtered link", () => {
 		getProjectIssuesUrl(settings({ sentryUrl: "https://de.sentry.io" })),
 		"https://de.sentry.io/organizations/acme/issues/?query=is%3Aunresolved%20project%3Aweb"
 	);
+});
+
+test("normalizes stack frames from the issue-event entries response", () => {
+	const frames = getEventFrames({
+		entries: [{
+			type: "exception",
+			data: {
+				values: [{
+					stacktrace: {
+						frames: [{
+							filename: "../../src/sentry-demo.ts",
+							absPath: "https://example.test/src/sentry-demo.ts",
+							lineNo: 46,
+							inApp: true
+						}]
+					}
+				}]
+			}
+		}]
+	});
+	assert.deepEqual(frames, [{
+		filename: "../../src/sentry-demo.ts",
+		absPath: "https://example.test/src/sentry-demo.ts",
+		lineno: 46,
+		inApp: true
+	}]);
 });

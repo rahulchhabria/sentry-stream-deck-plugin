@@ -2,7 +2,7 @@ import streamDeck from "@elgato/streamdeck";
 
 import { ErrorPulse } from "./actions/error-pulse";
 import { SelectedIssue } from "./actions/human-loop";
-import { NextIssue } from "./actions/issue-navigation";
+import { OpenCode } from "./actions/open-code";
 import { SendToAgent } from "./actions/send-to-agent";
 import { LoopStatusAction } from "./actions/loop";
 import { DoneAction } from "./actions/done";
@@ -17,7 +17,7 @@ streamDeck.settings.useExperimentalMessageIdentifiers = true;
 
 streamDeck.actions.registerAction(new ErrorPulse());
 streamDeck.actions.registerAction(new SelectedIssue());
-streamDeck.actions.registerAction(new NextIssue());
+streamDeck.actions.registerAction(new OpenCode());
 streamDeck.actions.registerAction(new SendToAgent());
 streamDeck.actions.registerAction(new LoopStatusAction());
 streamDeck.actions.registerAction(new DoneAction());

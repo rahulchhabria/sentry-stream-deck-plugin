@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
+import { isAbsolute } from "node:path";
 
 export type GhRunner = (
 	executable: string,
@@ -25,7 +26,14 @@ async function run(
 }
 
 export type LoopState = "none" | "draft" | "ci" | "ready" | "fail" | "merged" | "closed" | "error";
-export type LoopStatus = { state: LoopState; url?: string; message?: string };
+export type LoopErrorKind = "missing-cli" | "auth" | "network" | "command";
+export type LoopStatus = {
+	state: LoopState;
+	url?: string;
+	message?: string;
+	errorKind?: LoopErrorKind;
+	executable?: string;
+};
 
 /**
  * Best-effort PR detection using the GitHub CLI: looks for any PR in the
@@ -44,8 +52,9 @@ export async function detectPrStatus(
 	runner: GhRunner = run,
 	configuredExecutable?: string
 ): Promise<LoopStatus> {
+	let executable: string | undefined;
 	try {
-		const executable = configuredExecutable?.trim() || await resolveGitHubCli();
+		executable = await resolveGitHubCli(configuredExecutable);
 		const list = await runner(executable, [
 			"pr",
 			"list",
@@ -106,23 +115,46 @@ export async function detectPrStatus(
 		return { state: "ready", url: data.url ?? match.url };
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "GitHub CLI failed";
-		return { state: "error", message };
+		return { state: "error", message, errorKind: classifyGitHubError(message), executable };
 	}
 }
 
-async function resolveGitHubCli(): Promise<string> {
-	if (process.platform !== "darwin") {
-		return "gh";
+export async function resolveGitHubCli(
+	configuredExecutable?: string,
+	platform: NodeJS.Platform = process.platform,
+	accessFile: (path: string) => Promise<void> = access
+): Promise<string> {
+	const configured = configuredExecutable?.trim();
+	if (configured && (isAbsolute(configured) || configured.includes("/") || configured.includes("\\"))) {
+		return configured;
+	}
+	const command = configured || "gh";
+	if (platform !== "darwin" || command !== "gh") {
+		return command;
 	}
 	for (const candidate of ["/opt/homebrew/bin/gh", "/usr/local/bin/gh"]) {
 		try {
-			await access(candidate);
+			await accessFile(candidate);
 			return candidate;
 		} catch {
 			// Try the next common installation path before relying on PATH.
 		}
 	}
-	return "gh";
+	return command;
+}
+
+export function classifyGitHubError(message: string): LoopErrorKind {
+	const value = message.toLowerCase();
+	if (/\benoent\b|not found|no such file/.test(value)) {
+		return "missing-cli";
+	}
+	if (/auth login|authentication|bad credentials|invalid token|http 401|oauth/.test(value)) {
+		return "auth";
+	}
+	if (/api\.github\.com|internet connection|enotfound|network|timed? ?out|econn/.test(value)) {
+		return "network";
+	}
+	return "command";
 }
 
 function containsIssueId(value: string, shortId: string): boolean {
