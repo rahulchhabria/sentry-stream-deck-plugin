@@ -40,7 +40,7 @@ class AgentHandoffManager {
 	async start(
 		issue: SentryIssue,
 		settings: SentrySettings,
-		options?: { planText?: string; requestDraftPr?: boolean },
+		options?: { requestDraftPr?: boolean },
 		launcher?: TerminalLauncher
 	): Promise<void> {
 		if (this.current.status === "running") {
@@ -70,13 +70,12 @@ class AgentHandoffManager {
 			// Best-effort context handoff file (no secrets).
 			let handoffPath: string | undefined;
 			try {
-				handoffPath = await writeHandoffFile(repositoryPath, issue, settings, options?.planText);
+				handoffPath = await writeHandoffFile(issue, settings);
 			} catch {
 				// Ignore handoff write failures and continue with inline prompt only.
 			}
 
 			const prompt = buildAgentPrompt(issue, settings, {
-				planText: options?.planText,
 				handoffPath,
 				requestDraftPr: options?.requestDraftPr
 			});

@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { DEFAULT_SENTRY_URL, getSentryBaseUrl, hasRequiredSettings } from "./settings";
+import {
+	DEFAULT_SENTRY_URL,
+	getSentryBaseUrl,
+	hasRequiredSettings,
+	SentrySettingsError
+} from "./settings";
 
 test("getSentryBaseUrl defaults to sentry.io when unset or blank", () => {
 	assert.equal(getSentryBaseUrl({}), DEFAULT_SENTRY_URL);
@@ -18,10 +23,12 @@ test("getSentryBaseUrl normalises to the origin, dropping paths and trailing sla
 	assert.equal(getSentryBaseUrl({ sentryUrl: "https://sentry.io/some/path" }), "https://sentry.io");
 });
 
-test("getSentryBaseUrl rejects invalid or non-http(s) URLs", () => {
-	assert.equal(getSentryBaseUrl({ sentryUrl: "not a url" }), DEFAULT_SENTRY_URL);
-	assert.equal(getSentryBaseUrl({ sentryUrl: "ftp://sentry.io" }), DEFAULT_SENTRY_URL);
-	assert.equal(getSentryBaseUrl({ sentryUrl: "javascript:alert(1)" }), DEFAULT_SENTRY_URL);
+test("getSentryBaseUrl fails closed for invalid, insecure, or non-http(s) URLs", () => {
+	for (const sentryUrl of ["not a url", "ftp://sentry.io", "javascript:alert(1)", "http://sentry.example.com"]) {
+		assert.throws(() => getSentryBaseUrl({ sentryUrl }), SentrySettingsError);
+	}
+	assert.equal(getSentryBaseUrl({ sentryUrl: "http://localhost:9000" }), "http://localhost:9000");
+	assert.equal(getSentryBaseUrl({ sentryUrl: "http://127.0.0.1:9000" }), "http://127.0.0.1:9000");
 });
 
 test("hasRequiredSettings requires token, org and project (whitespace ignored)", () => {

@@ -76,12 +76,28 @@ export class ErrorPulse extends LongPressAction {
 			this.stopFlashing(action.id);
 		}
 
-		const issue = this.pendingIssues.get(action.id)?.[0] ?? this.latestIssues.get(action.id);
-		this.pendingIssues.delete(action.id);
+		const pending = this.pendingIssues.get(action.id) ?? [];
+		const { issue: pendingIssue, remaining } = takePendingIssue(pending);
+		const issue = pendingIssue ?? this.latestIssues.get(action.id);
+		if (remaining.length > 0) {
+			this.pendingIssues.set(action.id, remaining);
+			this.alerting.add(action.id);
+		} else {
+			this.pendingIssues.delete(action.id);
+		}
 		if (issue) {
 			issueSelectionStore.select(issue.id);
 			streamDeck.logger.info(`Pulse selected ${issue.shortId}`);
-			await action.setImage(wasAlerting ? ACK_IMAGE : ERROR_STEADY);
+			if (remaining.length > 0) {
+				this.ensureFlashing(action);
+				await action.setImage(createActionIcon("pulse", {
+					color: "#ff375f",
+					glow: true,
+					value: String(remaining.length)
+				}));
+			} else {
+				await action.setImage(wasAlerting ? ACK_IMAGE : ERROR_STEADY);
+			}
 			return;
 		}
 
@@ -139,12 +155,16 @@ export class ErrorPulse extends LongPressAction {
 		}
 
 		this.latestIssues.set(key.id, issue);
-		if (snapshot.newIssues.length > 0) {
-			this.pendingIssues.set(
-				key.id,
-				mergePendingIssues(this.pendingIssues.get(key.id) ?? [], snapshot)
-			);
+		const pending = mergePendingIssues(this.pendingIssues.get(key.id) ?? [], snapshot);
+		if (pending.length > 0) {
+			this.pendingIssues.set(key.id, pending);
+		}
+		if (snapshot.newIssues.length > 0 && pending.length > 0) {
 			this.alerting.add(key.id);
+		} else if (pending.length === 0) {
+			this.pendingIssues.delete(key.id);
+			this.alerting.delete(key.id);
+			this.stopFlashing(key.id);
 		}
 
 		// While muted: never flash; show MUTE.
@@ -235,13 +255,21 @@ export class ErrorPulse extends LongPressAction {
 	}
 }
 
+export function takePendingIssue(pending: SentryIssue[]): {
+	issue: SentryIssue | undefined;
+	remaining: SentryIssue[];
+} {
+	return { issue: pending[0], remaining: pending.slice(1) };
+}
+
 export function mergePendingIssues(existing: SentryIssue[], snapshot: IssueSnapshot): SentryIssue[] {
 	if (snapshot.status === "unconfigured" || snapshot.status === "error") {
 		return existing;
 	}
 	const incomingIds = new Set(snapshot.newIssues.map((item) => item.id));
+	const currentIds = new Set(snapshot.issues.map((item) => item.id));
 	return [
 		...snapshot.issues.filter((item) => incomingIds.has(item.id)),
-		...existing.filter((item) => !incomingIds.has(item.id))
+		...existing.filter((item) => currentIds.has(item.id) && !incomingIds.has(item.id))
 	];
 }

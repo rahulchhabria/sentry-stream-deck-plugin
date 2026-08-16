@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { access, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
 	buildAgentCommand,
 	buildAgentPrompt,
+	getClipboardExecutable,
 	launchAgent,
 	launchInTerminal,
 	writeHandoffFile,
@@ -49,11 +50,12 @@ test("buildAgentPrompt (short press) includes shortId and permalink but not toke
 	const prompt = buildAgentPrompt(issue, {
 		...settings,
 		authToken: "shhh"
-	}, { planText: "Root cause\nFix plan", handoffPath: ".sentry-deck/handoff.json", requestDraftPr: false });
+	}, { handoffPath: ".sentry-deck/handoff.json", requestDraftPr: false });
 	assert.match(prompt, /WEB-123/);
 	assert.match(prompt, /https:\/\/sentry\.io\/issues\/123\//);
+	assert.match(prompt, /untrusted data/i);
+	assert.ok(!prompt.includes(issue.title), "untrusted issue title should not be embedded in the launch prompt");
 	assert.ok(!/shhh/.test(prompt), "should not include auth token");
-	assert.match(prompt, /Seer plan:/);
 	assert.match(prompt, /\.sentry-deck\/handoff\.json/);
 	assert.ok(!/draft PR/i.test(prompt), "short press should not ask for draft PR");
 });
@@ -69,18 +71,18 @@ test("buildAgentPrompt (long press) explicitly asks for a draft PR", () => {
 test("writeHandoffFile writes expected shape without secrets outside the worktree", async () => {
 	const repo = await mkdtemp(join(tmpdir(), "repo-"));
 	try {
-		await mkdir(join(repo, ".git"));
-		const path = await writeHandoffFile(repo, issue, {
+		const path = await writeHandoffFile(issue, {
 			...settings,
 			authToken: "topsecret"
-		}, "Plan text");
+		});
 		const json = JSON.parse(await readFile(path, "utf8"));
 		assert.equal(json.organizationSlug, "acme");
 		assert.equal(json.projectSlug, "web");
 		assert.equal(json.issue.shortId, "WEB-123");
 		assert.equal(json.issue.permalink, "https://sentry.io/issues/123/");
-		assert.equal(json.planText, "Plan text");
-		assert.ok(path.startsWith(join(repo, ".git")));
+		assert.equal(json.planText, undefined);
+		assert.ok(!path.startsWith(repo));
+		assert.equal((await stat(path)).mode & 0o777, 0o600);
 		// No token should be present.
 		assert.ok(!JSON.stringify(json).includes("topsecret"));
 		await assert.rejects(access(join(repo, ".gitignore")));
@@ -106,6 +108,41 @@ test("launchInTerminal targets Ghostty with a working directory and command", {
 	assert.match(calls[0]?.args.join(" ") ?? "", /Ghostty/);
 	assert.match(calls[0]?.args.join(" ") ?? "", /\/work\/repo/);
 	assert.match(calls[0]?.args.join(" ") ?? "", /codex/);
+	assert.deepEqual(calls[0]?.args.slice(-3), ["--", "/work/repo", "'/opt/homebrew/bin/codex' 'fix WEB-123'"]);
+});
+
+test("launchInTerminal passes hostile prompt text as osascript argv, not source", {
+	skip: process.platform !== "darwin"
+}, async () => {
+	const hostile = String.raw`bad\\\" & do shell script \"touch /tmp/never-run\" & \"`;
+	let script = "";
+	let argv: string[] = [];
+	await launchInTerminal(
+		{ executable: "codex", args: [hostile] },
+		"/work/repo",
+		{ terminalKind: "terminal" },
+		async (_executable, args) => {
+			script = args[1] ?? "";
+			argv = args.slice(2);
+		}
+	);
+	assert.ok(!script.includes(hostile));
+	assert.equal(argv.at(-1)?.includes(hostile), true);
+});
+
+test("launchInTerminal preserves argument boundaries for Windows Terminal", async () => {
+	const calls: Array<{ executable: string; args: string[] }> = [];
+	await launchInTerminal(
+		{ executable: "codex.exe", args: ["prompt with spaces & punctuation!"] },
+		"C:\\work tree\\repo",
+		{},
+		async (executable, args) => { calls.push({ executable, args }); },
+		"win32"
+	);
+	assert.deepEqual(calls, [{
+		executable: "wt.exe",
+		args: ["-w", "0", "nt", "-d", "C:\\work tree\\repo", "codex.exe", "prompt with spaces & punctuation!"]
+	}]);
 });
 
 test("Codex Desktop launch copies the prompt and opens the repository", async () => {
@@ -124,6 +161,12 @@ test("Codex Desktop launch copies the prompt and opens the repository", async ()
 		args: ["app", "/work/repo"]
 	});
 	assert.equal(result.requiresPromptPaste, true);
+});
+
+test("Codex Desktop selects a native clipboard writer on both supported platforms", () => {
+	assert.equal(getClipboardExecutable("darwin"), "pbcopy");
+	assert.equal(getClipboardExecutable("win32"), "clip.exe");
+	assert.equal(getClipboardExecutable("linux"), undefined);
 });
 
 test("Codex Desktop infers Codex from an absolute CLI path", async () => {

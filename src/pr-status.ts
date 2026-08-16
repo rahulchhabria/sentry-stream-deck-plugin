@@ -63,7 +63,7 @@ export async function detectPrStatus(
 			"--search",
 			shortId,
 			"--json",
-			"number,title,url,isDraft,body,headRefName",
+			"number,title,url,isDraft,body,headRefName,state,updatedAt",
 			"-L",
 			"100"
 		], { cwd: repositoryPath, windowsHide: true });
@@ -74,10 +74,14 @@ export async function detectPrStatus(
 			isDraft?: boolean;
 			body?: string;
 			headRefName?: string;
+			state?: string;
+			updatedAt?: string;
 		}>;
-		const match = prs.find((pr) => [pr.title, pr.body, pr.headRefName].some(
-			(value) => typeof value === "string" && containsIssueId(value, shortId)
-		));
+		const match = prs
+			.filter((pr) => [pr.title, pr.body, pr.headRefName].some(
+				(value) => typeof value === "string" && containsIssueId(value, shortId)
+			))
+			.sort(comparePrCandidates)[0];
 		if (!match) {
 			return { state: "none" };
 		}
@@ -117,6 +121,22 @@ export async function detectPrStatus(
 		const message = error instanceof Error ? error.message : "GitHub CLI failed";
 		return { state: "error", message, errorKind: classifyGitHubError(message), executable };
 	}
+}
+
+function comparePrCandidates(
+	a: { state?: string; isDraft?: boolean; updatedAt?: string },
+	b: { state?: string; isDraft?: boolean; updatedAt?: string }
+): number {
+	const rank = (pr: typeof a): number => {
+		const state = (pr.state ?? "").toUpperCase();
+		if (state === "OPEN" && !pr.isDraft) return 0;
+		if (state === "OPEN") return 1;
+		if (state === "MERGED") return 2;
+		return 3;
+	};
+	const rankDifference = rank(a) - rank(b);
+	if (rankDifference !== 0) return rankDifference;
+	return Date.parse(b.updatedAt ?? "") - Date.parse(a.updatedAt ?? "") || 0;
 }
 
 export async function resolveGitHubCli(

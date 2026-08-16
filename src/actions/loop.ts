@@ -202,7 +202,7 @@ export class LoopStatusAction extends SingletonAction {
 	}
 }
 
-function imageForStatus(status: LoopStatus): string {
+export function imageForStatus(status: LoopStatus): string {
 	switch (status.state) {
 		case "draft": return IMAGES.draft;
 		case "ci": return IMAGES.ci;

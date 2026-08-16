@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { access } from "node:fs/promises";
+import { realpath } from "node:fs/promises";
 import { resolve, relative, isAbsolute, sep } from "node:path";
 
 export type FileOpenLauncher = (
@@ -50,16 +50,24 @@ export async function openInEditorOrSystem(
 		}
 		file = resolve(repositoryPath, parts.join(sep));
 	}
-	// Verify the resolved path stays under the repository path.
-	const rel = relative(repositoryPath, file);
-	if (rel.startsWith("..") || isAbsolute(rel)) {
-		return false;
-	}
+	let canonicalRepository: string;
+	let canonicalFile: string;
 	try {
-		await access(file);
+		[canonicalRepository, canonicalFile] = await Promise.all([
+			realpath(repositoryPath),
+			realpath(file)
+		]);
 	} catch {
 		return false;
 	}
+	// Compare canonical paths so a symlink inside the repository cannot escape it.
+	const rel = relative(canonicalRepository, canonicalFile);
+	if (rel.startsWith("..") || isAbsolute(rel)) {
+		return false;
+	}
+	// Launch the verified canonical target so the editor does not follow a
+	// subsequently swapped symlink after the boundary check.
+	file = canonicalFile;
 
 	const kind = options.kind ?? "auto";
 	const candidates = kind === "auto"

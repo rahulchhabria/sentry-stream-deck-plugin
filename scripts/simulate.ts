@@ -1,146 +1,115 @@
 /**
- * Headless simulator for the Sentry Stream Deck plugin.
+ * Browser preview for the complete six-key Stream Deck workflow.
  *
- * Renders the real key visuals (via the same createKeyImage used by the plugin)
- * into an interactive HTML page so the Error Pulse behaviour — steady backlog,
- * flash on a new issue, click-to-acknowledge, clear/error states — can be
- * exercised in a browser without a physical Stream Deck.
- *
- * Run with:  npm run sim
+ * This uses the production icon renderer and mirrors user-visible transitions.
+ * It is not a replacement for hardware, Mobile, or a Virtual Device.
  */
 import { execFile } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createKeyImage } from "../src/key-visual";
+import { createActionIcon } from "../src/key-visual";
 
-// Same visuals the Error Pulse action uses (see src/actions/error-pulse.ts).
-const VISUALS = {
-	SETUP: { title: "SETUP", img: createKeyImage({ background: "#271a1c", accent: "#8b6f73", label: "CONFIG" }) },
-	API_ERR: { title: "API ERR", img: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "RETRY" }) },
-	AUTH: { title: "AUTH", img: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "CHECK KEY" }) },
-	RATE: { title: "RATE", img: createKeyImage({ background: "#2c1d08", accent: "#f59e0b", label: "SLOW DOWN" }) },
-	CLEAR: { title: "CLEAR", img: createKeyImage({ background: "#10241d", accent: "#34d399", label: "QUIET" }) },
-	BRIGHT: { img: createKeyImage({ background: "#500918", accent: "#ff375f", label: "ERRORS" }) },
-	DIM: { img: createKeyImage({ background: "#19080d", accent: "#7f1d35", label: "ERRORS" }) },
-	STEADY: { img: createKeyImage({ background: "#2a0c14", accent: "#b52c48", label: "ERRORS" }) }
+const icons = {
+	pulse: {
+		idle: createActionIcon("pulse", { color: "#ff375f" }),
+		alerts: Array.from({ length: 9 }, (_, index) => createActionIcon("pulse", {
+			color: "#ff375f",
+			glow: true,
+			value: String(index + 1)
+		})),
+		quiet: createActionIcon("pulse", { color: "#34d399" }),
+		mute: createActionIcon("pulse", { color: "#10b981", dimmed: true, label: "MUTE" }),
+		auth: createActionIcon("pulse", { color: "#f59e0b", glow: true, label: "AUTH" })
+	},
+	inspect: {
+		idle: createActionIcon("inspect", { color: "#a78bfa" }),
+		none: createActionIcon("inspect", { color: "#60646c", dimmed: true })
+	},
+	code: {
+		idle: createActionIcon("code", { color: "#60a5fa" }),
+		working: createActionIcon("code", { color: "#60a5fa", glow: true, label: "OPENING" }),
+		done: createActionIcon("code", { color: "#34d399", glow: true, label: "OPEN" })
+	},
+	agent: {
+		idle: createActionIcon("agent", { color: "#ff3d9a" }),
+		working: createActionIcon("agent", { color: "#ff3d9a", glow: true, label: "RUN" }),
+		done: createActionIcon("agent", { color: "#34d399", glow: true, label: "SENT" })
+	},
+	pr: {
+		idle: createActionIcon("pr", { color: "#60646c", dimmed: true }),
+		none: createActionIcon("pr", { color: "#38bdf8", label: "NO PR" }),
+		draft: createActionIcon("pr", { color: "#a78bfa", glow: true, label: "DRAFT" }),
+		ci: createActionIcon("pr", { color: "#38bdf8", glow: true, label: "CI" }),
+		ready: createActionIcon("pr", { color: "#34d399", glow: true, label: "READY" }),
+		fail: createActionIcon("pr", { color: "#f59e0b", glow: true, label: "FAIL" })
+	},
+	resolve: {
+		idle: createActionIcon("resolve", { color: "#34d399" }),
+		confirm: createActionIcon("resolve", { color: "#f59e0b", glow: true, label: "CONFIRM" }),
+		archive: createActionIcon("resolve", { color: "#f59e0b", glow: true, label: "ARCHIVE?" }),
+		done: createActionIcon("resolve", { color: "#34d399", glow: true, label: "RESOLVED" }),
+		archived: createActionIcon("resolve", { color: "#34d399", glow: true, label: "ARCHIVED" })
+	}
 };
 
 const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Sentry Stream Deck — Simulator</title>
+<html lang="en"><head><meta charset="utf-8"><title>Sentry Stream Deck Preview</title>
 <style>
-	:root { color-scheme: dark; }
-	body { margin: 0; font: 14px/1.5 -apple-system, system-ui, sans-serif; background: #121212; color: #e6e6e6; display: flex; min-height: 100vh; align-items: center; justify-content: center; }
-	.wrap { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 32px; }
-	.stage { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-	.key { position: relative; width: 216px; height: 216px; }
-	.key img { width: 100%; height: 100%; display: block; }
-	.title { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-weight: 700; font-size: 26px; color: #fff; text-shadow: 0 1px 3px #000; letter-spacing: .5px; }
-	.state { font-size: 12px; color: #9a9a9a; }
-	.panel { display: flex; flex-direction: column; gap: 10px; min-width: 240px; }
-	.panel h2 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #8a8a8a; }
-	button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #1e1e1e; color: #e6e6e6; cursor: pointer; text-align: left; }
-	button:hover { background: #2a2a2a; }
-	button.primary { border-color: #ff375f; }
-	.log { font-family: ui-monospace, monospace; font-size: 12px; background: #0c0c0c; border: 1px solid #262626; border-radius: 8px; padding: 10px; height: 150px; overflow: auto; white-space: pre-wrap; }
-	.hint { font-size: 12px; color: #777; }
-</style>
-</head>
-<body>
-<div class="wrap">
-	<div class="stage">
-		<div class="key" id="key" title="Click to press the key">
-			<img id="keyImg" alt="key" />
-			<div class="title" id="keyTitle"></div>
-		</div>
-		<div class="state" id="stateLabel"></div>
-		<div class="hint">Click the key to “press” it (acknowledges an alert).</div>
-	</div>
-	<div class="panel">
-		<h2>Simulate poller snapshots</h2>
-		<button onclick="apply('unconfigured')">Unconfigured (no settings)</button>
-		<button onclick="ready(3,false)">Ready · 3 existing issues (baseline)</button>
-		<button class="primary" onclick="fire()">🔴 New issue fires</button>
-		<button onclick="ready(4,false)">Next poll · still 4, none new</button>
-		<button onclick="ready(120,true)">Ready · 100+ issues</button>
-		<button onclick="apply('clear')">All resolved (CLEAR)</button>
-		<button onclick="apply('auth')">Error · 401/403 (AUTH)</button>
-		<button onclick="apply('rate')">Error · 429 (RATE)</button>
-		<button onclick="apply('error')">Error · other (API ERR)</button>
-		<div class="log" id="log"></div>
-	</div>
-</div>
-<script>
-	const V = ${JSON.stringify(VISUALS)};
-	const keyImg = document.getElementById('keyImg');
-	const keyTitle = document.getElementById('keyTitle');
-	const stateLabel = document.getElementById('stateLabel');
-	const logEl = document.getElementById('log');
+:root{color-scheme:dark}body{margin:0;background:#111;color:#eee;font:14px/1.45 -apple-system,system-ui,sans-serif;min-height:100vh;display:grid;place-items:center}.wrap{display:flex;gap:42px;align-items:center;padding:32px;flex-wrap:wrap;justify-content:center}.deck{display:grid;grid-template-columns:repeat(3,144px);gap:14px;padding:22px;background:#080808;border:1px solid #333;border-radius:28px;box-shadow:0 24px 80px #000}.key{width:144px;height:144px;border:0;padding:0;background:#000;border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:inset 0 0 0 1px #333}.key:focus-visible{outline:3px solid #fff;outline-offset:3px}.key img{display:block;width:100%;height:100%}.panel{width:290px;display:grid;gap:10px}.panel h1{font-size:18px;margin:0}.panel p{color:#aaa;margin:0 0 8px}.controls{display:flex;gap:8px;flex-wrap:wrap}.controls button{background:#242424;color:#eee;border:1px solid #444;border-radius:8px;padding:8px 10px;cursor:pointer}.log{height:170px;overflow:auto;white-space:pre-wrap;background:#080808;border:1px solid #333;border-radius:10px;padding:10px;font:12px/1.4 ui-monospace,monospace}
+</style></head><body><main class="wrap">
+<section class="deck" aria-label="Six-key Stream Deck preview">
+<button class="key" data-action="pulse" aria-label="New Issue"><img alt="New Issue"></button>
+<button class="key" data-action="inspect" aria-label="Inspect"><img alt="Inspect"></button>
+<button class="key" data-action="code" aria-label="Code"><img alt="Code"></button>
+<button class="key" data-action="agent" aria-label="Agent"><img alt="Agent"></button>
+<button class="key" data-action="pr" aria-label="View PR"><img alt="View PR"></button>
+<button class="key" data-action="resolve" aria-label="Resolve"><img alt="Resolve"></button>
+</section>
+<section class="panel"><h1>Six-key workflow preview</h1><p>Click for a short press; hold for 700ms to preview long-press behavior. This does not call Sentry, GitHub, or a coding agent.</p>
+<div class="controls"><button data-control="new">New issue</button><button data-control="clear">Clear backlog</button><button data-control="auth">Auth error</button></div>
+<div class="controls"><button data-pr="none">No PR</button><button data-pr="draft">Draft</button><button data-pr="ci">CI</button><button data-pr="ready">Ready</button><button data-pr="fail">Fail</button></div>
+<div id="log" class="log" aria-live="polite"></div></section>
+</main><script>
+const icons=${JSON.stringify(icons)};
+const state={issues:1,pending:0,muted:false,auth:false,pr:'none',confirm:null};
+const logEl=document.getElementById('log');
+function log(message){logEl.textContent='› '+message+'\\n'+logEl.textContent}
+function image(action){
+ if(action==='pulse'){if(state.auth)return icons.pulse.auth;if(state.muted)return icons.pulse.mute;if(state.pending>0)return icons.pulse.alerts[Math.min(state.pending,9)-1];return state.issues?icons.pulse.idle:icons.pulse.quiet}
+ if(action==='inspect')return state.issues?icons.inspect.idle:icons.inspect.none;
+ if(action==='code')return state.issues?icons.code.idle:icons.inspect.none;
+ if(action==='agent')return state.issues?icons.agent.idle:icons.inspect.none;
+ if(action==='pr')return state.issues?icons.pr[state.pr]:icons.pr.idle;
+ return state.issues?icons.resolve.idle:icons.inspect.none;
+}
+function render(){document.querySelectorAll('.key').forEach(key=>{key.querySelector('img').src=image(key.dataset.action)})}
+function temporary(action,src,delay=850){const key=document.querySelector('[data-action="'+action+'"] img');key.src=src;setTimeout(render,delay)}
+let confirmationTimer;
+function armConfirmation(kind,image,message){clearTimeout(confirmationTimer);state.confirm=kind;temporary('resolve',image,3000);confirmationTimer=setTimeout(()=>{if(state.confirm===kind)state.confirm=null},3000);log(message)}
+function shortPress(action){
+ if(action==='pulse'){if(state.pending>0){state.pending--;log('Selected one new issue; '+state.pending+' pending')}else{log(state.issues?'Selected the newest unresolved issue':'No issue to select')}render();return}
+ if(!state.issues){log(action+': no selected issue');return}
+ if(action==='inspect'){log('Would open the selected Sentry issue');return}
+ if(action==='code'){temporary('code',icons.code.working,450);setTimeout(()=>temporary('code',icons.code.done),450);log('Would resolve and open the best local frame');return}
+ if(action==='agent'){temporary('agent',icons.agent.working,450);setTimeout(()=>temporary('agent',icons.agent.done),450);log('Would launch the configured coding agent');return}
+ if(action==='pr'){if(state.pr==='none'){temporary('pr',icons.agent.working);log('Would ask the agent to create a draft PR')}else log('Would open the matched active PR');return}
+ if(action==='resolve'){if(state.confirm==='resolve'){clearTimeout(confirmationTimer);state.issues=Math.max(0,state.issues-1);state.confirm=null;temporary('resolve',icons.resolve.done);log('Resolved the selected issue')}else{armConfirmation('resolve',icons.resolve.confirm,'Press Resolve again within 3 seconds to confirm')}}
+}
+function longPress(action){if(action==='pulse'){state.muted=!state.muted;log(state.muted?'Pulse muted':'Pulse unmuted');render();return}if(action==='agent'){temporary('agent',icons.agent.working);log('Would launch the agent with a draft-PR request');return}if(action==='resolve'){if(state.confirm==='archive'){clearTimeout(confirmationTimer);state.issues=Math.max(0,state.issues-1);state.confirm=null;temporary('resolve',icons.resolve.archived);log('Archived the selected issue')}else{armConfirmation('archive',icons.resolve.archive,'Long press again within 3 seconds to archive')}return}shortPress(action)}
+document.querySelectorAll('.key').forEach(key=>{let timer,long=false;key.addEventListener('pointerdown',()=>{long=false;timer=setTimeout(()=>{long=true;longPress(key.dataset.action)},700)});key.addEventListener('pointerup',()=>{clearTimeout(timer);if(!long)shortPress(key.dataset.action)});key.addEventListener('pointerleave',()=>clearTimeout(timer))});
+document.querySelectorAll('[data-control]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.control;if(value==='new'){state.issues++;state.pending++;state.auth=false;log('New issue arrived; '+state.pending+' pending')}if(value==='clear'){state.issues=0;state.pending=0;state.auth=false;log('Backlog cleared')}if(value==='auth'){state.auth=true;log('Sentry authentication error')}render()}));
+document.querySelectorAll('[data-pr]').forEach(button=>button.addEventListener('click',()=>{state.pr=button.dataset.pr;log('PR state: '+state.pr);render()}));
+render();log('Preview ready');
+</script></body></html>`;
 
-	let alerting = false;      // unacknowledged new issue
-	let flashTimer = null;
-	let bright = true;
-	let hasIssue = false;      // an issue is available to "open"
-
-	function log(msg){ logEl.textContent = '› ' + msg + '\\n' + logEl.textContent; }
-	function setKey(img, title){ keyImg.src = img; keyTitle.textContent = title ?? ''; }
-
-	function stopFlash(){ if (flashTimer){ clearInterval(flashTimer); flashTimer = null; } }
-	function ensureFlash(){
-		if (flashTimer) return;
-		bright = true;
-		setKey(V.BRIGHT.img, '');
-		flashTimer = setInterval(() => {
-			bright = !bright;
-			keyImg.src = bright ? V.BRIGHT.img : V.DIM.img;
-		}, 600);
-	}
-
-	function apply(kind){
-		stopFlash(); alerting = false; hasIssue = false;
-		if (kind === 'unconfigured'){ setKey(V.SETUP.img, V.SETUP.title); stateLabel.textContent = 'status: unconfigured'; log('unconfigured — showing SETUP'); }
-		else if (kind === 'clear'){ setKey(V.CLEAR.img, V.CLEAR.title); stateLabel.textContent = 'status: ready, 0 issues'; log('backlog cleared — showing CLEAR'); }
-		else if (kind === 'auth'){ setKey(V.AUTH.img, V.AUTH.title); stateLabel.textContent = 'status: error 401/403'; log('auth error — showing AUTH / CHECK KEY'); }
-		else if (kind === 'rate'){ setKey(V.RATE.img, V.RATE.title); stateLabel.textContent = 'status: error 429'; log('rate limited — showing RATE / SLOW DOWN'); }
-		else if (kind === 'error'){ setKey(V.API_ERR.img, V.API_ERR.title); stateLabel.textContent = 'status: error'; log('api error — showing API ERR / RETRY'); }
-	}
-
-	// A ready snapshot with N issues; newCount>0 means new issues arrived.
-	function ready(count, hasMore){
-		hasIssue = count > 0;
-		const label = hasMore ? count + '+' : String(count);
-		if (alerting){ ensureFlash(); stateLabel.textContent = 'status: ready, ' + label + ' issues (ALERTING)'; log('poll: ' + label + ' issues, still alerting → flashing'); }
-		else { stopFlash(); setKey(V.STEADY.img, ''); stateLabel.textContent = 'status: ready, ' + label + ' issues (steady)'; log('poll: ' + label + ' issues, none new → steady (no flash)'); }
-	}
-
-	function fire(){
-		alerting = true; hasIssue = true;
-		ensureFlash();
-		stateLabel.textContent = 'status: ready, NEW issue → ALERTING';
-		log('🔴 new issue fired → flashing until acknowledged');
-	}
-
-	// Pressing the key: acknowledge an alert, then "open" the issue.
-	document.getElementById('key').addEventListener('click', () => {
-		if (alerting){ alerting = false; stopFlash(); setKey(V.STEADY.img, keyTitle.textContent); log('key pressed → acknowledged, flashing stopped'); }
-		else { log('key pressed → ' + (hasIssue ? 'would open the latest issue in Sentry' : 'would open the project issues page')); }
-	});
-
-	apply('unconfigured');
-</script>
-</body>
-</html>`;
-
-const dir = mkdtempSync(join(tmpdir(), "sentry-sim-"));
-const file = join(dir, "simulator.html");
+const directory = mkdtempSync(join(tmpdir(), "sentry-stream-deck-preview-"));
+const file = join(directory, "index.html");
 writeFileSync(file, html);
-console.log(`Simulator written to: ${file}`);
-execFile("open", [file], (error) => {
-	if (error) {
-		console.log(`Open it manually in a browser:\n  ${file}`);
-	}
-});
+console.log(`Preview written to: ${file}`);
+if (!process.argv.includes("--no-open")) {
+	execFile("open", [file], (error) => {
+		if (error) console.log(`Open it manually in a browser:\n  ${file}`);
+	});
+}

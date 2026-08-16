@@ -6,7 +6,9 @@ import {
 	type ConfiguredSentrySettings,
 	getSentryBaseUrl,
 	getSentrySettings,
-	hasRequiredSettings
+	hasRequiredSettings,
+	SentrySettingsError,
+	type SentrySettings
 } from "./settings";
 
 const POLL_INTERVAL_MS = 15_000;
@@ -37,7 +39,23 @@ export type IssueSnapshot =
 
 type Subscriber = (snapshot: IssueSnapshot) => void | Promise<void>;
 
-class IssuePoller {
+type IssuePollerDependencies = {
+	getSettings: () => Promise<SentrySettings>;
+	getIssues: typeof getUnresolvedIssues;
+	onSettings: (listener: (settings: SentrySettings) => void) => void;
+	logError?: (message: string) => void;
+};
+
+const defaultDependencies: IssuePollerDependencies = {
+	getSettings: getSentrySettings,
+	getIssues: getUnresolvedIssues,
+	onSettings: (listener) => {
+		streamDeck.settings.onDidReceiveGlobalSettings((event) => listener(event.settings));
+	},
+	logError: (message) => streamDeck.logger.error(message)
+};
+
+export class IssuePoller {
 	private readonly subscribers = new Set<Subscriber>();
 	private snapshot: IssueSnapshot = { status: "unconfigured", issues: [] };
 	private timer?: ReturnType<typeof setInterval>;
@@ -51,16 +69,16 @@ class IssuePoller {
 	/** Identifies the current Sentry target; changing it re-baselines detection. */
 	private connectionKey?: string;
 
-	constructor() {
+	constructor(private readonly dependencies: IssuePollerDependencies = defaultDependencies) {
 		// Fires only on property-inspector updates (see useExperimentalMessageIdentifiers
 		// in plugin.ts), so requesting settings during a refresh does not loop.
-		streamDeck.settings.onDidReceiveGlobalSettings((event) => {
+		this.dependencies.onSettings((settings) => {
 			// Invalidate any request that started with older settings. If the Sentry
 			// target changed, also hide the cached queue immediately so an action can
 			// never open an issue from the previous project while the new poll runs.
 			this.settingsRevision += 1;
-			const nextConnectionKey = hasRequiredSettings(event.settings)
-				? this.getConnectionKey(event.settings)
+			const nextConnectionKey = hasRequiredSettings(settings)
+				? this.tryGetConnectionKey(settings)
 				: undefined;
 			if (nextConnectionKey !== this.connectionKey) {
 				this.resetBaseline(undefined);
@@ -95,6 +113,10 @@ class IssuePoller {
 		return this.refresh(true);
 	}
 
+	getSnapshot(): IssueSnapshot {
+		return this.snapshot;
+	}
+
 	private refresh(queueIfBusy = false): Promise<void> {
 		if (this.refreshPromise) {
 			this.refreshRequested ||= queueIfBusy;
@@ -114,7 +136,7 @@ class IssuePoller {
 	private async performRefresh(): Promise<void> {
 		const settingsRevision = this.settingsRevision;
 		try {
-			const settings = await getSentrySettings();
+			const settings = await this.dependencies.getSettings();
 			if (settingsRevision !== this.settingsRevision) {
 				return;
 			}
@@ -131,7 +153,7 @@ class IssuePoller {
 				this.resetBaseline(connectionKey);
 			}
 
-			const { issues, hasMore } = await getUnresolvedIssues(settings);
+			const { issues, hasMore } = await this.dependencies.getIssues(settings);
 			if (settingsRevision !== this.settingsRevision) {
 				return;
 			}
@@ -145,8 +167,15 @@ class IssuePoller {
 			}
 			const message = error instanceof Error ? error.message : "Unknown error";
 			const statusCode = error instanceof SentryApiError ? error.status : undefined;
-			streamDeck.logger.error(`Shared Sentry issue refresh failed: ${message}`);
-			if (this.lastSuccessfulPage && isTransientRefreshFailure(statusCode)) {
+			this.dependencies.logError?.(`Shared Sentry issue refresh failed: ${message}`);
+			if (error instanceof SentrySettingsError) {
+				this.publish({ status: "unconfigured", issues: [] });
+				return;
+			}
+			if (
+				this.lastSuccessfulPage
+				&& isTransientRefreshFailure(statusCode)
+			) {
 				this.publish({
 					status: "stale",
 					...this.lastSuccessfulPage,
@@ -166,6 +195,15 @@ class IssuePoller {
 			settings.organizationSlug.trim(),
 			settings.projectSlug.trim()
 		].join("|");
+	}
+
+	private tryGetConnectionKey(settings: ConfiguredSentrySettings): string | undefined {
+		try {
+			return this.getConnectionKey(settings);
+		} catch (error) {
+			if (error instanceof SentrySettingsError) return undefined;
+			throw error;
+		}
 	}
 
 	private resetBaseline(connectionKey: string | undefined): void {

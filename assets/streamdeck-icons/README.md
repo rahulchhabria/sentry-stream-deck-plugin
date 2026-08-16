@@ -10,7 +10,7 @@ cannot resize, wrap, or overlap them.
 | --- | --- | --- | --- |
 | NEW ISSUE | Sentry mark | `#ff375f` | Alternates normal/glow every 600 ms for a new issue |
 | INSPECT | Focus brackets | `#a78bfa` | Glows for an unhandled selected issue |
-| NEXT | Double chevron | `#60a5fa` | Normal navigation state |
+| CODE | Code brackets | `#60a5fa` | Glows while locating and opening a source frame |
 | AGENT | Robot | `#ff3d9a` | Glows while launching and after a successful handoff |
 | VIEW PR | Pull request | `#38bdf8` | Status-colored glow for draft, CI, failure, or merge |
 | RESOLVE | Circled check | `#34d399` | Glows briefly after a successful resolve/archive |
@@ -20,3 +20,6 @@ Regenerate both normal and glow SVGs with:
 ```sh
 npm run icons:build
 ```
+
+The `plugin-*.svg` files are editable sources for the checked-in manifest PNGs
+and replace the Elgato template artwork with six-key workflow branding.

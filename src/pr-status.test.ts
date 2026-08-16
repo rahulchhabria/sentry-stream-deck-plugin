@@ -80,6 +80,21 @@ test("matches the exact issue id in title, body, or branch", async () => {
 	assert.equal(status.url, "https://x/p/2");
 });
 
+test("prefers an active PR over an older closed match", async () => {
+	let viewed = "";
+	const list = JSON.stringify([
+		{ number: 1, title: "Fix WEB-123", state: "CLOSED", updatedAt: "2026-08-16T12:00:00Z" },
+		{ number: 2, title: "WEB-123 retry", state: "OPEN", updatedAt: "2026-08-15T12:00:00Z" }
+	]);
+	const status = await detectPrStatus(repo, "WEB-123", async (_executable, args) => {
+		if (args[1] === "list") return { stdout: list };
+		viewed = args[2] ?? "";
+		return { stdout: JSON.stringify({ state: "OPEN", statusCheckRollup: [], url: "https://x/p/2" }) };
+	});
+	assert.equal(viewed, "2");
+	assert.equal(status.state, "ready");
+});
+
 test("reports GitHub CLI failures separately from no PR", async () => {
 	const status = await detectPrStatus(repo, "WEB-123", async () => {
 		throw new Error("gh auth required");

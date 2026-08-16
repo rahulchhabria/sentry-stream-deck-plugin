@@ -12,8 +12,6 @@ export type SentrySettings = {
 	sentryUrl?: string;
 	/** Absolute path of the repository the coding agent should inspect. */
 	repositoryPath?: string;
-	/** Optional absolute path to the new `sentry` CLI executable. */
-	sentryCliPath?: string;
 	/** Optional absolute path to the GitHub CLI executable used for PR discovery. */
 	githubCliPath?: string;
 	/** Optional absolute path to the local coding agent CLI (e.g. `agent`, `claude`, or `codex`). */
@@ -48,6 +46,13 @@ export type ConfiguredSentrySettings = SentrySettings & {
 
 export const DEFAULT_SENTRY_URL = "https://sentry.io";
 
+export class SentrySettingsError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "SentrySettingsError";
+	}
+}
+
 export async function getSentrySettings(): Promise<SentrySettings> {
 	return streamDeck.settings.getGlobalSettings<SentrySettings>();
 }
@@ -64,8 +69,8 @@ export function hasRequiredSettings(
 
 /**
  * Resolves the Sentry base URL (origin only) from settings, supporting US, EU
- * and self-hosted instances. Falls back to {@link DEFAULT_SENTRY_URL} when the
- * value is missing or not a valid http(s) URL.
+ * and self-hosted instances. Defaults only when the value is absent; an
+ * explicitly configured invalid or insecure URL fails closed.
  */
 export function getSentryBaseUrl(settings: SentrySettings): string {
 	const raw = settings.sentryUrl?.trim();
@@ -77,13 +82,20 @@ export function getSentryBaseUrl(settings: SentrySettings): string {
 	try {
 		url = new URL(raw);
 	} catch {
-		return DEFAULT_SENTRY_URL;
+		throw new SentrySettingsError("Sentry URL is invalid");
 	}
 
-	if (url.protocol !== "https:" && url.protocol !== "http:") {
-		return DEFAULT_SENTRY_URL;
+	if (url.protocol !== "https:" && !(url.protocol === "http:" && isLoopbackHost(url.hostname))) {
+		throw new SentrySettingsError("Sentry URL must use HTTPS (HTTP is allowed only for loopback hosts)");
 	}
 
 	// Normalise to origin so any trailing path/slash is dropped.
 	return url.origin;
+}
+
+function isLoopbackHost(hostname: string): boolean {
+	const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+	return normalized === "localhost"
+		|| normalized === "::1"
+		|| normalized.startsWith("127.");
 }

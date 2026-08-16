@@ -28,6 +28,7 @@ export class DoneAction extends LongPressAction {
 	private readonly subscriptions = new Map<string, () => void>();
 	private readonly confirmations = new Map<string, { issueId: string; status: "resolved" | "ignored" }>();
 	private readonly confirmationTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	private readonly feedbackTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 	constructor() {
 		super(700);
@@ -47,6 +48,7 @@ export class DoneAction extends LongPressAction {
 	override onWillDisappear(ev: WillDisappearEvent): void {
 		this.stopSubscription(ev.action.id);
 		this.clearConfirmation(ev.action.id);
+		this.clearFeedback(ev.action.id);
 	}
 
 	protected override async onShortPress(action: KeyAction): Promise<void> {
@@ -64,7 +66,7 @@ export class DoneAction extends LongPressAction {
 			return;
 		}
 		const pending = this.confirmations.get(action.id);
-		if (!pending || pending.issueId !== issue.id || pending.status !== status) {
+		if (confirmationStep(pending, issue.id, status) === "arm") {
 			this.clearConfirmation(action.id);
 			this.confirmations.set(action.id, { issueId: issue.id, status });
 			await action.setImage(status === "resolved" ? IMAGES.armResolve : IMAGES.armArchive);
@@ -83,8 +85,13 @@ export class DoneAction extends LongPressAction {
 		}
 		try {
 			await updateIssueStatus(settings, issue.id, status);
-			await action.setImage(status === "resolved" ? IMAGES.resolved : IMAGES.archived);
 			await issuePoller.refreshNow();
+			await action.setImage(status === "resolved" ? IMAGES.resolved : IMAGES.archived);
+			this.clearFeedback(action.id);
+			this.feedbackTimers.set(action.id, setTimeout(() => {
+				this.feedbackTimers.delete(action.id);
+				void this.render(action);
+			}, 900));
 		} catch (error) {
 			const statusCode = (error as { status?: number } | undefined)?.status;
 			await action.setImage(statusCode === 401 || statusCode === 403 ? IMAGES.auth : IMAGES.fail);
@@ -113,4 +120,20 @@ export class DoneAction extends LongPressAction {
 			this.confirmationTimers.delete(actionId);
 		}
 	}
+
+	private clearFeedback(actionId: string): void {
+		const timer = this.feedbackTimers.get(actionId);
+		if (timer) {
+			clearTimeout(timer);
+			this.feedbackTimers.delete(actionId);
+		}
+	}
+}
+
+export function confirmationStep(
+	pending: { issueId: string; status: "resolved" | "ignored" } | undefined,
+	issueId: string,
+	status: "resolved" | "ignored"
+): "arm" | "execute" {
+	return pending?.issueId === issueId && pending.status === status ? "execute" : "arm";
 }

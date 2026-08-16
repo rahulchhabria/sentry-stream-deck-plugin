@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, realpath, symlink, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -50,9 +50,10 @@ test("opens a repository file in the configured VS Code CLI at the source line",
 			{ kind: "vscode", executable: "/opt/bin/code" }
 		);
 		assert.equal(ok, true);
+		const canonicalFile = await realpath(file);
 		assert.deepEqual(calls[0], {
 			executable: "/opt/bin/code",
-			args: ["--goto", `${file}:42`]
+			args: ["--goto", `${canonicalFile}:42`]
 		});
 	});
 });
@@ -63,6 +64,22 @@ test("accepts absolute source paths only when they remain inside the repository"
 		await writeFile(file, "ok", "utf8");
 		const ok = await openInEditorOrSystem(repo, file, undefined, noop, { kind: "system" });
 		assert.equal(ok, true);
+	});
+});
+
+test("rejects a repository symlink whose canonical target is outside the repository", async () => {
+	await withRepo(async (repo) => {
+		await symlink("/etc/hosts", join(repo, "frame.ts"));
+		let launched = false;
+		const ok = await openInEditorOrSystem(
+			repo,
+			"frame.ts",
+			undefined,
+			async () => { launched = true; },
+			{ kind: "system" }
+		);
+		assert.equal(ok, false);
+		assert.equal(launched, false);
 	});
 });
 
@@ -83,9 +100,10 @@ test("falls back to the configured macOS editor app when its CLI is not on PATH"
 			{ kind: "cursor", platform: "darwin" }
 		);
 		assert.equal(ok, true);
+		const canonicalFile = await realpath(file);
 		assert.deepEqual(calls, [
-			{ executable: "cursor", args: ["--goto", `${file}:12`] },
-			{ executable: "open", args: ["-a", "Cursor", "--args", "--goto", `${file}:12`] }
+			{ executable: "cursor", args: ["--goto", `${canonicalFile}:12`] },
+			{ executable: "open", args: ["-a", "Cursor", "--args", "--goto", `${canonicalFile}:12`] }
 		]);
 	});
 });

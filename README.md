@@ -98,7 +98,6 @@ Inspector settings (stored in Stream Deck global settings, shared by all actions
 | **Organization** | Required. Organization slug. |
 | **Project** | Required. Project slug. |
 | **Repository** | Absolute path to the local repository used by Code, Agent, and View PR. |
-| **Sentry CLI** | Optional executable or absolute path. Defaults to `sentry`. An absolute path is often more reliable when Stream Deck does not inherit the shell's `PATH`. |
 | **GitHub CLI** | Optional executable or absolute path used by View PR. On macOS the plugin checks common Homebrew paths before relying on `PATH`. |
 | **Agent CLI** | Optional executable or absolute path to your coding agent. Defaults to `agent` (Cursor CLI). Absolute paths are recommended. |
 | **Agent Kind** | Agent adapter: Codex, Claude Code, Cursor Agent, or Custom. Existing unset configurations retain the `agent` default. |
@@ -186,9 +185,6 @@ Upload that file at <https://marketplace.elgato.com/maker>.
 
 ## Before submitting to the Marketplace
 
-- [ ] Replace the placeholder art (still Elgato template defaults) — plugin icon,
-      category icon, both action icons, and both default key images, each with an
-      `@2x` variant. See the sizes in `manifest.json`.
 - [ ] Re-prefix the plugin UUID to an identity you control (see below).
 - [ ] Confirm Sentry trademark/branding usage is cleared.
 - [ ] Prepare listing assets in the Maker portal: description, category,

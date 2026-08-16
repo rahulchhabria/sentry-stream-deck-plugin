@@ -5,6 +5,7 @@ node_modules/
 *.sdPlugin/bin
 *.sdPlugin/logs
 *.streamDeckPlugin
+/logs/
 
 # macOS
 .DS_Store
