@@ -15,11 +15,11 @@ or legal verification.
 
 ## Public resources
 
-- [ ] This release's setup documentation is published from [README.md](README.md).
-- [ ] Support instructions are published from [SUPPORT.md](SUPPORT.md).
+- [x] This release's setup documentation is published from [README.md](README.md).
+- [x] Support instructions are published from [SUPPORT.md](SUPPORT.md).
 - [x] Public issue support is available at <https://github.com/rahulchhabria/sentry-stream-deck-plugin/issues>.
-- [ ] Privacy disclosure is published from [PRIVACY.md](PRIVACY.md).
-- [ ] Manifest and Property Inspector product, support, setup, and privacy URLs all resolve anonymously after publication.
+- [x] Privacy disclosure is published from [PRIVACY.md](PRIVACY.md).
+- [x] Manifest and Property Inspector product, support, setup, and privacy URLs all resolve anonymously after publication.
 
 ## Automated release evidence
 
