@@ -73,6 +73,7 @@ export class LoopStatusAction extends SingletonAction {
 		const settings = await getSentrySettings();
 		if (!settings.repositoryPath?.trim()) {
 			await key.setImage(IMAGES.setup);
+			await key.showAlert();
 			return;
 		}
 
@@ -101,6 +102,10 @@ export class LoopStatusAction extends SingletonAction {
 		}
 		await key.setImage(IMAGES.agent);
 		await agentHandoffManager.start(issue, settings, { requestDraftPr: true });
+		const nextAgentStatus = agentHandoffManager.getStatus();
+		if (nextAgentStatus.status === "error" && nextAgentStatus.issueId === issue.id) {
+			await key.showAlert();
+		}
 		await this.requestRender(key);
 	}
 
@@ -110,6 +115,7 @@ export class LoopStatusAction extends SingletonAction {
 		repositoryPath: string,
 		settings: Awaited<ReturnType<typeof getSentrySettings>>
 	): Promise<void> {
+		await key.showAlert();
 		switch (status.errorKind) {
 			case "auth":
 				await key.setImage(IMAGES.login);
@@ -130,7 +136,6 @@ export class LoopStatusAction extends SingletonAction {
 			case "command":
 			default:
 				await key.setImage(IMAGES.error);
-				await key.showAlert();
 		}
 	}
 

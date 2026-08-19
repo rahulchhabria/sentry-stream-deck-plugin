@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { access, mkdtemp, readFile, rm, stat } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 import {
 	buildAgentCommand,
@@ -10,7 +7,6 @@ import {
 	getClipboardExecutable,
 	launchAgent,
 	launchInTerminal,
-	writeHandoffFile,
 	type ProcessLauncher
 } from "./agent-handoff";
 import type { SentryIssue } from "./sentry-api";
@@ -21,13 +17,6 @@ const issue: SentryIssue = {
 	title: "Service crashed on startup",
 	permalink: "https://sentry.io/issues/123/",
 	status: "unresolved"
-};
-
-const settings = {
-	sentryUrl: "https://sentry.io",
-	organizationSlug: "acme",
-	projectSlug: "web",
-	repositoryPath: "/work/repo"
 };
 
 test("buildAgentCommand places the prompt last and respects extra args", () => {
@@ -46,49 +35,19 @@ test("buildAgentCommand places the prompt last and respects extra args", () => {
 	assert.deepEqual(cmd4.args, ["--alpha", "two words", "go"]);
 });
 
-test("buildAgentPrompt (short press) includes shortId and permalink but not token, and no draft PR ask", () => {
-	const prompt = buildAgentPrompt(issue, {
-		...settings,
-		authToken: "shhh"
-	}, { handoffPath: ".sentry-deck/handoff.json", requestDraftPr: false });
+test("buildAgentPrompt (short press) includes shortId and permalink but not title, and no draft PR ask", () => {
+	const prompt = buildAgentPrompt(issue, { requestDraftPr: false });
 	assert.match(prompt, /WEB-123/);
 	assert.match(prompt, /https:\/\/sentry\.io\/issues\/123\//);
 	assert.match(prompt, /untrusted data/i);
 	assert.ok(!prompt.includes(issue.title), "untrusted issue title should not be embedded in the launch prompt");
-	assert.ok(!/shhh/.test(prompt), "should not include auth token");
-	assert.match(prompt, /\.sentry-deck\/handoff\.json/);
+	assert.ok(!/handoff\.json/.test(prompt), "should not create or reference persistent handoff files");
 	assert.ok(!/draft PR/i.test(prompt), "short press should not ask for draft PR");
 });
 
 test("buildAgentPrompt (long press) explicitly asks for a draft PR", () => {
-	const prompt = buildAgentPrompt(issue, {
-		...settings,
-		authToken: "shhh"
-	}, { requestDraftPr: true });
+	const prompt = buildAgentPrompt(issue, { requestDraftPr: true });
 	assert.match(prompt, /draft PR/i);
-});
-
-test("writeHandoffFile writes expected shape without secrets outside the worktree", async () => {
-	const repo = await mkdtemp(join(tmpdir(), "repo-"));
-	try {
-		const path = await writeHandoffFile(issue, {
-			...settings,
-			authToken: "topsecret"
-		});
-		const json = JSON.parse(await readFile(path, "utf8"));
-		assert.equal(json.organizationSlug, "acme");
-		assert.equal(json.projectSlug, "web");
-		assert.equal(json.issue.shortId, "WEB-123");
-		assert.equal(json.issue.permalink, "https://sentry.io/issues/123/");
-		assert.equal(json.planText, undefined);
-		assert.ok(!path.startsWith(repo));
-		assert.equal((await stat(path)).mode & 0o777, 0o600);
-		// No token should be present.
-		assert.ok(!JSON.stringify(json).includes("topsecret"));
-		await assert.rejects(access(join(repo, ".gitignore")));
-	} finally {
-		await rm(repo, { recursive: true, force: true });
-	}
 });
 
 test("launchInTerminal targets Ghostty with a working directory and command", {
@@ -143,6 +102,26 @@ test("launchInTerminal preserves argument boundaries for Windows Terminal", asyn
 		executable: "wt.exe",
 		args: ["-w", "0", "nt", "-d", "C:\\work tree\\repo", "codex.exe", "prompt with spaces & punctuation!"]
 	}]);
+});
+
+test("launchInTerminal fails closed when Windows Terminal is unavailable", async () => {
+	const calls: Array<{ executable: string; args: string[] }> = [];
+	await assert.rejects(
+		launchInTerminal(
+			{ executable: "codex.exe", args: [String.raw`hostile & calc.exe | %PATH%`] },
+			"C:\\work&tree\\repo",
+			{},
+			async (executable, args) => {
+				calls.push({ executable, args });
+				throw new Error("ENOENT");
+			},
+			"win32"
+		),
+		/Windows Terminal is required/
+	);
+	assert.equal(calls.length, 1);
+	assert.equal(calls[0]?.executable, "wt.exe");
+	assert.ok(calls.every(({ executable }) => executable !== "cmd.exe"));
 });
 
 test("Codex Desktop launch copies the prompt and opens the repository", async () => {

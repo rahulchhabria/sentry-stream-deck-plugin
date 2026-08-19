@@ -8,7 +8,6 @@ import {
 	buildAgentCommand,
 	buildAgentPrompt,
 	launchAgent,
-	writeHandoffFile,
 	type AgentCommand,
 	type AgentLaunchResult
 } from "./agent-handoff";
@@ -67,16 +66,7 @@ class AgentHandoffManager {
 
 		this.publish({ status: "running", issueId: issue.id });
 		try {
-			// Best-effort context handoff file (no secrets).
-			let handoffPath: string | undefined;
-			try {
-				handoffPath = await writeHandoffFile(issue, settings);
-			} catch {
-				// Ignore handoff write failures and continue with inline prompt only.
-			}
-
-			const prompt = buildAgentPrompt(issue, settings, {
-				handoffPath,
+			const prompt = buildAgentPrompt(issue, {
 				requestDraftPr: options?.requestDraftPr
 			});
 			const command = buildAgentCommand(

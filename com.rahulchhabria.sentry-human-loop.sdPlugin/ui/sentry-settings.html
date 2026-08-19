@@ -2,137 +2,175 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
-	<title>Sentry Settings</title>
+	<title>Sentry Alerts Settings</title>
 	<script src="sdpi-components.js"></script>
+	<style>
+		:root { color-scheme: dark; }
+		body { margin: 0; padding: 8px 0 16px; }
+		details { margin: 0 10px 12px; }
+		summary { color: #ddd; cursor: pointer; font: 600 12px system-ui, sans-serif; padding: 6px 0; }
+		.help, #validation-summary { color: #b8b8b8; font: 11px/1.45 system-ui, sans-serif; margin: 8px 12px; }
+		.help a { color: #65b7ff; }
+		#validation-summary { border-left: 3px solid #34d399; padding: 6px 8px; }
+		#validation-summary[data-state="error"] { border-left-color: #f59e0b; color: #ffd08a; }
+		[data-invalid="true"] { outline: 1px solid #f59e0b; outline-offset: 1px; }
+		[hidden] { display: none !important; }
+	</style>
 </head>
 <body>
-	<sdpi-item label="Sentry URL">
-		<sdpi-textfield
-			setting="sentryUrl"
-			placeholder="https://sentry.io"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+	<div id="validation-summary" role="status" aria-live="polite">Checking shared settings…</div>
 
-	<sdpi-item label="Auth Token">
-		<sdpi-password
-			setting="authToken"
-			required
-			global>
-		</sdpi-password>
-	</sdpi-item>
+	<details open>
+		<summary>Sentry connection</summary>
+		<sdpi-item label="Sentry URL">
+			<sdpi-textfield id="sentry-url" setting="sentryUrl" placeholder="https://sentry.io" global></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Auth Token">
+			<sdpi-password id="auth-token" setting="authToken" required global></sdpi-password>
+		</sdpi-item>
+		<sdpi-item label="Organization">
+			<sdpi-textfield id="organization" setting="organizationSlug" required pattern="[a-zA-Z0-9_-]+" global></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Project">
+			<sdpi-textfield id="project" setting="projectSlug" required pattern="[a-zA-Z0-9_.-]+" global></sdpi-textfield>
+		</sdpi-item>
+	</details>
 
-	<sdpi-item label="Organization">
-		<sdpi-textfield
-			setting="organizationSlug"
-			required
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+	<details>
+		<summary>Local workflow (optional)</summary>
+		<sdpi-item label="Repository">
+			<sdpi-textfield id="repository" setting="repositoryPath" placeholder="/absolute/path/to/repository" global></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="GitHub CLI">
+			<sdpi-textfield setting="githubCliPath" placeholder="gh or /opt/homebrew/bin/gh" global></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Agent CLI">
+			<sdpi-textfield setting="agentCliPath" placeholder="agent" global></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Agent Kind">
+			<sdpi-select id="agent-kind" setting="agentKind" global>
+				<option value="agent">Cursor Agent</option>
+				<option value="codex">Codex</option>
+				<option value="claude">Claude Code</option>
+				<option value="custom">Custom</option>
+			</sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Agent Args">
+			<sdpi-textfield setting="agentExtraArgs" placeholder="--mode=agent" global></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Launch In">
+			<sdpi-select id="launch-mode" setting="agentLaunchMode" global>
+				<option value="terminal">Terminal interface</option>
+				<option value="codex-desktop">Codex Desktop</option>
+				<option value="direct">Direct (no interface)</option>
+			</sdpi-select>
+		</sdpi-item>
+		<div id="terminal-settings">
+			<sdpi-item label="Terminal">
+				<sdpi-select id="terminal-kind" setting="terminalKind" global>
+					<option value="auto">Auto-detect (Ghostty first)</option>
+					<option value="ghostty">Ghostty</option>
+					<option value="terminal">Terminal.app</option>
+					<option value="iterm">iTerm2</option>
+					<option value="custom">Custom app</option>
+				</sdpi-select>
+			</sdpi-item>
+			<sdpi-item id="terminal-app-row" label="Terminal App" hidden>
+				<sdpi-textfield id="terminal-app" setting="terminalApp" placeholder="CustomTerminal.app" global></sdpi-textfield>
+			</sdpi-item>
+		</div>
+		<sdpi-item label="Code IDE">
+			<sdpi-select id="editor-kind" setting="editorKind" global>
+				<option value="auto">Auto-detect</option>
+				<option value="cursor">Cursor</option>
+				<option value="vscode">VS Code</option>
+				<option value="zed">Zed</option>
+				<option value="xcode">Xcode</option>
+				<option value="system">System default</option>
+				<option value="custom">Custom CLI</option>
+			</sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="IDE CLI">
+			<sdpi-textfield id="editor-cli" setting="editorCliPath" placeholder="Optional executable override" global></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item id="editor-args-row" label="IDE Args" hidden>
+			<sdpi-textfield setting="editorArgs" placeholder="{file}:{line}" global></sdpi-textfield>
+		</sdpi-item>
+	</details>
 
-	<sdpi-item label="Project">
-		<sdpi-textfield
-			setting="projectSlug"
-			required
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+	<p class="help">
+		Settings are shared by all six actions and save automatically.
+		<a href="https://github.com/rahulchhabria/sentry-stream-deck-plugin#configure" target="_blank" rel="noreferrer">Setup guide</a>
+		· <a href="https://github.com/rahulchhabria/sentry-stream-deck-plugin/issues" target="_blank" rel="noreferrer">Support</a>
+		· <a href="https://github.com/rahulchhabria/sentry-stream-deck-plugin/blob/main/PRIVACY.md" target="_blank" rel="noreferrer">Privacy</a>
+	</p>
 
-	<sdpi-item label="Repository">
-		<sdpi-textfield
-			setting="repositoryPath"
-			placeholder="/absolute/path/to/repository"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+	<script>
+		const byId = (id) => document.getElementById(id);
+		const valueOf = (id) => String(byId(id)?.value ?? "").trim();
+		const setInvalid = (id, invalid) => {
+			const element = byId(id);
+			if (!element) return;
+			element.dataset.invalid = String(invalid);
+			element.setAttribute("aria-invalid", String(invalid));
+		};
 
-	<sdpi-item label="GitHub CLI">
-		<sdpi-textfield
-			setting="githubCliPath"
-			placeholder="gh or /opt/homebrew/bin/gh"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+		function validate() {
+			const errors = [];
+			const sentryUrl = valueOf("sentry-url");
+			let urlValid = true;
+			if (sentryUrl) {
+				try {
+					const url = new URL(sentryUrl);
+					const loopback = url.hostname === "localhost" || url.hostname === "::1" || url.hostname.startsWith("127.");
+					urlValid = url.protocol === "https:" || (url.protocol === "http:" && loopback);
+				} catch { urlValid = false; }
+			}
+			if (!urlValid) errors.push("Sentry URL must use HTTPS (loopback HTTP is allowed).");
 
-	<sdpi-item label="Agent CLI">
-		<sdpi-textfield
-			setting="agentCliPath"
-			placeholder="agent"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+			for (const [id, label] of [["auth-token", "Auth token"], ["organization", "Organization"], ["project", "Project"]]) {
+				const invalid = !valueOf(id);
+				setInvalid(id, invalid);
+				if (invalid) errors.push(`${label} is required.`);
+			}
+			setInvalid("sentry-url", !urlValid);
 
-	<sdpi-item label="Agent Kind">
-		<sdpi-select
-			setting="agentKind"
-			global>
-			<option value="agent">Cursor Agent</option>
-			<option value="codex">Codex</option>
-			<option value="claude">Claude Code</option>
-			<option value="custom">Custom</option>
-		</sdpi-select>
-	</sdpi-item>
+			const repository = valueOf("repository");
+			const repositoryValid = !repository || repository.startsWith("/") || /^[A-Za-z]:[\\/]/.test(repository);
+			setInvalid("repository", !repositoryValid);
+			if (!repositoryValid) errors.push("Repository must be an absolute macOS or Windows path.");
 
-	<sdpi-item label="Agent Extra Args">
-		<sdpi-textfield
-			setting="agentExtraArgs"
-			placeholder="--mode=agent"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+			const launchMode = valueOf("launch-mode") || "terminal";
+			const terminalKind = valueOf("terminal-kind") || "auto";
+			byId("terminal-settings").hidden = launchMode !== "terminal";
+			byId("terminal-app-row").hidden = launchMode !== "terminal" || terminalKind !== "custom";
+			const terminalAppInvalid = launchMode === "terminal" && terminalKind === "custom" && !valueOf("terminal-app");
+			setInvalid("terminal-app", terminalAppInvalid);
+			if (terminalAppInvalid) errors.push("Custom terminal requires an application name.");
 
-	<sdpi-item label="Launch In">
-		<sdpi-select setting="agentLaunchMode" global>
-			<option value="terminal">Terminal interface</option>
-			<option value="codex-desktop">Codex Desktop</option>
-			<option value="direct">Direct (no interface)</option>
-		</sdpi-select>
-	</sdpi-item>
+			const agentKind = valueOf("agent-kind") || "agent";
+			if (launchMode === "codex-desktop" && agentKind !== "codex") {
+				errors.push("Codex Desktop requires Agent Kind = Codex.");
+				setInvalid("agent-kind", true);
+			} else setInvalid("agent-kind", false);
 
-	<sdpi-item label="Terminal">
-		<sdpi-select setting="terminalKind" global>
-			<option value="auto">Auto-detect (Ghostty first)</option>
-			<option value="ghostty">Ghostty</option>
-			<option value="terminal">Terminal.app</option>
-			<option value="iterm">iTerm2</option>
-			<option value="custom">Custom app</option>
-		</sdpi-select>
-	</sdpi-item>
+			const editorKind = valueOf("editor-kind") || "auto";
+			byId("editor-args-row").hidden = editorKind !== "custom";
+			const editorInvalid = editorKind === "custom" && !valueOf("editor-cli");
+			setInvalid("editor-cli", editorInvalid);
+			if (editorInvalid) errors.push("Custom IDE requires an executable.");
 
-	<sdpi-item label="Terminal App">
-		<sdpi-textfield
-			setting="terminalApp"
-			placeholder="CustomTerminal.app"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+			const summary = byId("validation-summary");
+			summary.dataset.state = errors.length ? "error" : "ok";
+			summary.textContent = errors.length ? errors.join(" ") : "Required settings look valid.";
+		}
 
-	<sdpi-item label="Code IDE">
-		<sdpi-select setting="editorKind" global>
-			<option value="auto">Auto-detect</option>
-			<option value="cursor">Cursor</option>
-			<option value="vscode">VS Code</option>
-			<option value="zed">Zed</option>
-			<option value="xcode">Xcode</option>
-			<option value="system">System default</option>
-			<option value="custom">Custom CLI</option>
-		</sdpi-select>
-	</sdpi-item>
-
-	<sdpi-item label="IDE CLI">
-		<sdpi-textfield
-			setting="editorCliPath"
-			placeholder="Optional executable override"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
-
-	<sdpi-item label="IDE Args">
-		<sdpi-textfield
-			setting="editorArgs"
-			placeholder="{file}:{line}"
-			global>
-		</sdpi-textfield>
-	</sdpi-item>
+		document.addEventListener("input", validate);
+		document.addEventListener("change", validate);
+		window.addEventListener("load", () => {
+			validate();
+			setTimeout(validate, 250);
+		});
+	</script>
 </body>
 </html>

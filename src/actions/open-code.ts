@@ -52,13 +52,15 @@ export class OpenCode extends SingletonAction {
 	override async onKeyDown(ev: KeyDownEvent): Promise<void> {
 		const key = ev.action as KeyAction;
 		const issue = issueSelectionStore.getSnapshot().selectedIssue;
-		const settings = await getSentrySettings();
 		if (!issue) {
 			await key.setImage(IMAGES.none);
+			await key.showAlert();
 			return;
 		}
+		const settings = await getSentrySettings();
 		if (!hasRequiredSettings(settings) || !settings.repositoryPath?.trim()) {
 			await key.setImage(IMAGES.setup);
+			await key.showAlert();
 			return;
 		}
 
@@ -69,6 +71,7 @@ export class OpenCode extends SingletonAction {
 			if (!frame) {
 				streamDeck.logger.warn(`Code found no stack frame for ${issue.shortId}`);
 				await key.setImage(IMAGES.noFrame);
+				await key.showAlert();
 				return;
 			}
 			const candidates = sourcePathCandidates(frame);
@@ -95,11 +98,13 @@ export class OpenCode extends SingletonAction {
 				`Code found no local file for ${issue.shortId}: ${candidates.join(", ") || "no path"}`
 			);
 			await key.setImage(IMAGES.noFile);
+			await key.showAlert();
 		} catch (error) {
 			const status = (error as { status?: number } | undefined)?.status;
 			const message = error instanceof Error ? error.message : "Unknown error";
 			streamDeck.logger.error(`Code failed for ${issue.shortId}: ${message}`);
 			await key.setImage(status === 401 || status === 403 ? IMAGES.auth : IMAGES.error);
+			await key.showAlert();
 		}
 	}
 

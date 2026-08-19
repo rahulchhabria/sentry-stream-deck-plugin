@@ -1,4 +1,8 @@
-# Sentry for Stream Deck
+# Sentry Alerts
+
+An independent community integration for Stream Deck. This project is not
+affiliated with, endorsed by, or sponsored by Sentry or Elgato. Sentry and
+Stream Deck are trademarks of their respective owners.
 
 A physical, six-key human-in-the-loop pipeline for Sentry. The plugin watches a
 project, flashes when a **new** unresolved issue fires, opens the selected
@@ -49,7 +53,8 @@ agent is expected to have Sentry MCP configured so it can call
 - Short press launches with a minimal prompt. Long press explicitly asks the agent
   to open a draft PR linking the issue.
 - Terminal mode supports Ghostty, Terminal.app, iTerm2, and a custom terminal.
-  Auto-detect prefers Ghostty when it is installed.
+  Auto-detect prefers Ghostty when it is installed. On Windows, terminal mode
+  requires Windows Terminal; choose Direct mode if Windows Terminal is not installed.
 - Codex Desktop mode opens the repository with `codex app`, copies the complete
   prompt to the clipboard, and shows **PASTE** because the public app launcher
   does not accept an initial prompt.
@@ -184,18 +189,20 @@ npm run check
 npm run pack    # -> com.rahulchhabria.sentry-human-loop.streamDeckPlugin
 ```
 
-Upload that file at <https://marketplace.elgato.com/maker>.
+Upload that file at <https://marketplace.elgato.com/maker> only after every
+applicable item in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) has evidence.
 
 ## Before submitting to the Marketplace
 
-- [ ] Confirm `com.rahulchhabria.sentry-human-loop` is the permanent UUID and
-      uses an identity controlled by the publishing organization (see below).
-- [ ] Ensure `Author` exactly matches the Maker Console organization name.
-- [ ] Confirm Sentry trademark/branding usage is cleared.
+- [ ] Confirm `Sentry Alerts`, free pricing, your individual Maker identity, and
+      `com.rahulchhabria.sentry-human-loop` before creating the product.
+- [ ] Obtain Sentry's permission or documented legal clearance for the exact
+      product name and all Sentry mark and imagery usage; the disclaimer above
+      is not legal clearance.
 - [ ] Upload the 288×288 app icon, 1920×960 thumbnail, and three 1920×960
       gallery images from the prepared release bundle.
-- [ ] Add a public, resolvable support URL in Maker Console (and optionally the
-      manifest) before submission; the repository is not currently public.
+- [ ] Publish this release's setup, support, and privacy documents, then verify
+      every manifest and Property Inspector URL anonymously.
 - [ ] Bump `Version` in `manifest.json` (4-part, e.g. `0.1.1.0`) and the
       `package.json` `version` on each release.
 - [ ] Run the full gate: `npm run check`, then `npm run pack` for the release artifact.
@@ -215,3 +222,9 @@ update every occurrence consistently:
 
 Changing the UUID registers the plugin as a new one, so do this before the first
 submission.
+
+## Support and privacy
+
+- Setup and troubleshooting: [SUPPORT.md](SUPPORT.md)
+- Bug reports: <https://github.com/rahulchhabria/sentry-stream-deck-plugin/issues>
+- Data handling: [PRIVACY.md](PRIVACY.md)

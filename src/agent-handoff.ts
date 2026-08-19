@@ -1,12 +1,9 @@
 import { execFile, spawn } from "node:child_process";
 import { platform as getPlatform } from "node:os";
-import { tmpdir } from "node:os";
 import { promises as fs } from "node:fs";
-import { join } from "node:path";
 
 import type { SentryIssue } from "./sentry-api";
 import type { SentrySettings } from "./settings";
-import { getSentryBaseUrl } from "./settings";
 
 export type AgentCommand = {
 	executable: string;
@@ -28,8 +25,7 @@ export type ProcessLauncher = (
 
 export function buildAgentPrompt(
 	issue: SentryIssue,
-	settings: SentrySettings,
-	options?: { handoffPath?: string; requestDraftPr?: boolean }
+	options?: { requestDraftPr?: boolean }
 ): string {
 	const lines: string[] = [
 		`Sentry issue identifier: ${issue.shortId}.`,
@@ -43,11 +39,6 @@ export function buildAgentPrompt(
 		lines.push(
 			"There may already be uncommitted local changes for this issue. Preserve and inspect them; do not reset or discard them.",
 			"Validate the intended changes, commit them on an appropriate branch, push, and open a draft PR linking this issue."
-		);
-	}
-	if (options?.handoffPath) {
-		lines.push(
-			`Context file: ${options.handoffPath} (organization, project, issue id, and permalink).`
 		);
 	}
 	return lines.join("\n");
@@ -71,35 +62,6 @@ export function buildAgentCommand(
 		default:
 			return { executable, args: [...baseArgs, prompt] };
 	}
-}
-
-export async function writeHandoffFile(
-	issue: SentryIssue,
-	settings: SentrySettings
-): Promise<string> {
-	// Use a fresh private temp directory so repository-controlled symlinks cannot
-	// redirect the context write outside its intended location.
-	const dir = await fs.mkdtemp(join(tmpdir(), "sentry-stream-deck-"));
-
-	const handoff = {
-		sentryUrl: getSentryBaseUrl(settings),
-		organizationSlug: settings.organizationSlug?.trim() || "",
-		projectSlug: settings.projectSlug?.trim() || "",
-		issue: {
-			id: issue.id,
-			shortId: issue.shortId,
-			title: issue.title,
-			permalink: issue.permalink
-		}
-	};
-	const handoffPath = join(dir, "handoff.json");
-	await fs.writeFile(handoffPath, JSON.stringify(handoff, null, 2), {
-		encoding: "utf8",
-		flag: "wx",
-		mode: 0o600
-	});
-
-	return handoffPath;
 }
 
 export async function launchAgent(
@@ -209,8 +171,9 @@ export async function launchInTerminal(
 	}
 
 	if (platform === "win32") {
-		// The launcher already detaches, so invoke Windows Terminal directly and
-		// preserve each argument boundary instead of round-tripping through `start`.
+		// Invoke Windows Terminal directly and preserve every argument boundary.
+		// Do not fall back to cmd.exe: issue-derived prompt content must never be
+		// serialized into a shell command line.
 		const wtArgs = [
 			"-w",
 			"0",
@@ -223,12 +186,11 @@ export async function launchInTerminal(
 		try {
 			await launcher("wt.exe", wtArgs, { windowsHide: true });
 			return;
-		} catch {
-			// Fallback keeps the terminal open. Dynamic values are quoted as cmd
-			// arguments, and delayed expansion is disabled to preserve `!`.
-			const commandLine = `cd /d ${quoteWin(repositoryPath)} && ${quoteWin(command.executable)} ${command.args.map(quoteWin).join(" ")}`;
-			await launcher("cmd.exe", ["/d", "/v:off", "/s", "/k", commandLine], { windowsHide: true });
-			return;
+		} catch (error) {
+			throw new Error(
+				"Windows Terminal is required for terminal launch mode. Install it or choose Direct launch mode.",
+				{ cause: error }
+			);
 		}
 	}
 
@@ -294,14 +256,6 @@ export function getClipboardExecutable(platform: NodeJS.Platform): string | unde
 
 function shellQuote(parts: string[]): string {
 	return parts.map((p) => `'${p.replaceAll("'", `'\\''`)}'`).join(" ");
-}
-
-export function quoteWin(value: string): string {
-	// Basic Windows argument quoting.
-	if (!/[ \t"]/.test(value)) {
-		return value;
-	}
-	return `"${value.replaceAll('"', '\\"')}"`;
 }
 
 function splitArgs(value: string): string[] {

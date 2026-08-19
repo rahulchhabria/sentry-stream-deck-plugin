@@ -72,6 +72,10 @@ export class SendToAgent extends LongPressAction {
 			return;
 		}
 		await agentHandoffManager.start(issue, settings, { requestDraftPr: opts.requestDraftPr });
+		const nextStatus = agentHandoffManager.getStatus();
+		if (nextStatus.status === "error" && nextStatus.issueId === issue.id) {
+			await action.showAlert();
+		}
 	}
 
 	private async render(key: KeyAction): Promise<void> {

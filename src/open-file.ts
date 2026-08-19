@@ -134,7 +134,10 @@ function editorCommands(
 		case "system":
 		default:
 			if (platform === "darwin") return [{ executable: "open", args: [file] }];
-			if (platform === "win32") return [{ executable: "cmd.exe", args: ["/c", "start", "", file] }];
+			// Keep issue-derived file paths out of cmd.exe. Windows filenames may
+			// contain shell metacharacters such as `&`, so even an argv-based
+			// child-process call is unsafe when the child is itself a command shell.
+			if (platform === "win32") return [{ executable: "explorer.exe", args: [file] }];
 			return [{ executable: "xdg-open", args: [file] }];
 	}
 }

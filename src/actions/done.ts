@@ -81,6 +81,7 @@ export class DoneAction extends LongPressAction {
 		const settings = await getSentrySettings();
 		if (!hasRequiredSettings(settings)) {
 			await action.setImage(IMAGES.auth);
+			await action.showAlert();
 			return;
 		}
 		try {
@@ -95,6 +96,7 @@ export class DoneAction extends LongPressAction {
 		} catch (error) {
 			const statusCode = (error as { status?: number } | undefined)?.status;
 			await action.setImage(statusCode === 401 || statusCode === 403 ? IMAGES.auth : IMAGES.fail);
+			await action.showAlert();
 		}
 	}
 

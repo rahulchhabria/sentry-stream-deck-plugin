@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-	"Name": "Sentry",
+	"Name": "Sentry Alerts",
 	"Version": "0.1.0.0",
 	"Author": "Rahul Chhabria",
 	"Actions": [
@@ -101,11 +101,13 @@
 			]
 		}
 	],
-	"Category": "Sentry",
+	"Category": "Sentry Alerts",
 	"CategoryIcon": "imgs/plugin/category-list",
 	"CodePath": "bin/plugin.js",
-	"Description": "A 6-key human-in-the-loop pipeline for Sentry on a Stream Deck: NEW ISSUE / INSPECT / CODE / AGENT / VIEW PR / RESOLVE. Inspect new issues, open their source, hand off to a local agent, follow PR status, and resolve/archive.",
+	"Description": "An independent 6-key human-in-the-loop workflow for Sentry: detect and inspect issues, open source, hand off to a local agent, follow PR status, and resolve or archive.",
 	"Icon": "imgs/plugin/marketplace",
+	"URL": "https://github.com/rahulchhabria/sentry-stream-deck-plugin",
+	"SupportURL": "https://github.com/rahulchhabria/sentry-stream-deck-plugin/issues",
 	"SDKVersion": 3,
 	"Software": {
 		"MinimumVersion": "7.1"

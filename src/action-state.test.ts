@@ -55,6 +55,7 @@ test("registered workflow actions render, handle an empty press, and clean up", 
 	try {
 		const code = new OpenCode();
 		code.onWillAppear(appear);
+		await code.onKeyDown(down);
 		code.onWillDisappear(disappear);
 
 		const agent = new SendToAgent();
@@ -76,7 +77,7 @@ test("registered workflow actions render, handle an empty press, and clean up", 
 
 		await Promise.all(pending);
 		assert.ok(images.length >= 4);
-		assert.equal(alerts, 3);
+		assert.equal(alerts, 4);
 	} finally {
 		issueSelectionStore.subscribe = originalSelectionSubscribe;
 		issueSelectionStore.getSnapshot = originalGetSnapshot;

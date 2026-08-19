@@ -7,7 +7,7 @@ export type SentrySettings = {
 	/**
 	 * Base URL of the Sentry instance, e.g. `https://sentry.io` (US),
 	 * `https://de.sentry.io` (EU) or a self-hosted host. Defaults to
-	 * {@link DEFAULT_SENTRY_URL} when unset or invalid.
+	 * {@link DEFAULT_SENTRY_URL} when unset; invalid values fail closed.
 	 */
 	sentryUrl?: string;
 	/** Absolute path of the repository the coding agent should inspect. */

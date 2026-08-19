@@ -107,3 +107,25 @@ test("falls back to the configured macOS editor app when its CLI is not on PATH"
 		]);
 	});
 });
+
+test("opens Windows system files without invoking a command shell", async () => {
+	await withRepo(async (repo) => {
+		const file = join(repo, "src", "error&calc.ts");
+		await mkdir(join(repo, "src"));
+		await writeFile(file, "ok", "utf8");
+		const calls: Array<{ executable: string; args: string[] }> = [];
+		const ok = await openInEditorOrSystem(
+			repo,
+			"src/error&calc.ts",
+			undefined,
+			async (executable, args) => { calls.push({ executable, args }); },
+			{ kind: "system", platform: "win32" }
+		);
+		assert.equal(ok, true);
+		assert.deepEqual(calls, [{
+			executable: "explorer.exe",
+			args: [await realpath(file)]
+		}]);
+		assert.ok(calls.every(({ executable }) => executable !== "cmd.exe"));
+	});
+});
