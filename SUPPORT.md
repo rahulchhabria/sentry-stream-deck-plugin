@@ -8,9 +8,7 @@
 3. Confirm the Sentry token has `event:read` and `project:read`; resolving or
    archiving additionally requires `event:write`.
 4. Use an absolute repository path for Code, Agent, and View PR.
-5. On Windows, install Windows Terminal for Terminal launch mode or select
-   Direct launch mode.
-6. Run `npm run check` when testing a source checkout.
+5. Run `npm run check` when testing a source checkout.
 
 Report reproducible problems at
 <https://github.com/rahulchhabria/sentry-stream-deck-plugin/issues>. Do not post

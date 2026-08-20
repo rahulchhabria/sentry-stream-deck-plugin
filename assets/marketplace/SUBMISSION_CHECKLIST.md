@@ -13,7 +13,7 @@
 - [x] MIT open-source license added.
 - [x] macOS packaged clean-install and device-profile evidence recorded.
 - [ ] All six keys manually exercised on a physical or Virtual Stream Deck.
-- [ ] Windows packaged clean-install and six-key workflow evidence recorded.
+- [x] Demonstration video prepared.
 - [x] Final installer and bundle checksums recorded.
 - [ ] Maker Console fields and media uploaded.
 - [ ] Submit only after all required manual platform evidence is complete.

@@ -8,7 +8,7 @@ Initial Marketplace release.
 - Follow matching GitHub pull-request and CI status.
 - Resolve or archive with an intentional two-press confirmation.
 - Configure all six actions through one shared, validated Property Inspector.
-- Support macOS and Windows editor, agent, terminal, and clipboard workflows.
+- Support macOS editor, agent, terminal, and clipboard workflows.
 
 Sentry Alerts is an independent community integration and is not affiliated
 with, endorsed by, or sponsored by Sentry or Elgato.

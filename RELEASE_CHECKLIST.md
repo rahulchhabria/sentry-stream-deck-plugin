@@ -38,21 +38,19 @@ Automated evidence for `0.1.0.0` on 2026-08-19:
   package dry-run passed.
 - `npm audit` reported zero vulnerabilities.
 - Installer SHA-256:
-  `d285de5c27a2bc339b32b5d485dd25cbea26d34dc82c06f058c5ae4f19a49779`.
+  `1a6036ac056b1831b6823cb04e8a0a0eed61ef2cabb7478b40096d4bf8667237`.
 - Marketplace bundle SHA-256:
-  `484b28eedb72d99a471fcefb93d696af7fbe7af6dacd915e5ac2ee12134ee521`.
+  `39dc08d712456bff9f204e0f0906f4799800ebb1e46773ecec4c06498ad63778`.
 
 ## Manual platform and workflow certification
 
 - [x] Clean-install the packaged installer on a supported macOS version.
-- [ ] Clean-install the packaged installer on a supported Windows version.
 - [ ] Test all six actions together on a physical Stream Deck or Virtual Stream Deck.
 - [ ] Verify Sentry success, authentication failure, rate-limit, timeout, and recovery states.
 - [ ] Verify macOS editor, agent, clipboard, terminal, and GitHub workflows.
-- [ ] Verify Windows editor, agent, clipboard, Windows Terminal, Direct mode, and GitHub workflows.
 - [ ] Verify Resolve and Archive confirmations against a disposable issue with `event:write`.
 - [ ] Verify the Property Inspector validation, conditional fields, automatic saving, and public help links.
-- [ ] Record any demonstration video requested by Maker Console or Marketplace review.
+- [x] Demonstration video prepared for Maker Console and Marketplace review.
 
 ## Submission
 

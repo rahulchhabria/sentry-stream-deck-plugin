@@ -9,7 +9,7 @@ test("Property Inspector provides validation, progressive disclosure, and public
 	assert.match(html, /id="validation-summary"/);
 	assert.match(html, /aria-live="polite"/);
 	assert.match(html, /function validate\(\)/);
-	assert.match(html, /Repository must be an absolute macOS or Windows path/);
+	assert.match(html, /Repository must be an absolute macOS path/);
 	assert.match(html, /<details open>/);
 	assert.match(html, /id="terminal-app-row"[^>]*hidden/);
 	assert.match(html, /id="editor-args-row"[^>]*hidden/);

@@ -9,7 +9,7 @@
 - **Price:** Free
 - **Category:** Productivity
 - **Tags:** Developer Tools, Monitoring, Sentry, GitHub
-- **Platforms:** macOS 12 or newer; Windows 10 or newer
+- **Platforms:** macOS 12 or newer
 - **Requires:** Stream Deck 7.1 or newer and a Sentry account
 
 ## Description
@@ -40,8 +40,6 @@ Elgato.
 3. Use a Sentry token with `event:read` and `project:read`; add `event:write`
    only if Resolve should update issues.
 4. Configure an absolute repository path before using Code, Agent, or View PR.
-5. On Windows, install Windows Terminal for Terminal launch mode or choose
-   Direct launch mode.
 
 ## Public links
 

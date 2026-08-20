@@ -53,8 +53,7 @@ agent is expected to have Sentry MCP configured so it can call
 - Short press launches with a minimal prompt. Long press explicitly asks the agent
   to open a draft PR linking the issue.
 - Terminal mode supports Ghostty, Terminal.app, iTerm2, and a custom terminal.
-  Auto-detect prefers Ghostty when it is installed. On Windows, terminal mode
-  requires Windows Terminal; choose Direct mode if Windows Terminal is not installed.
+  Auto-detect prefers Ghostty when it is installed.
 - Codex Desktop mode opens the repository with `codex app`, copies the complete
   prompt to the clipboard, and shows **PASTE** because the public app launcher
   does not accept an initial prompt.

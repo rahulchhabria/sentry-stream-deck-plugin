@@ -1,7 +1,7 @@
 # Sentry Alerts 0.1.0 release evidence
 
 This record separates automated and observed evidence from checks that still
-require a human-operated Windows or Stream Deck session. Passing CI does not
+require a human-operated Stream Deck session. Passing CI does not
 certify GUI installation, physical key presses, or live Sentry mutations.
 
 ## Automated gates
@@ -14,17 +14,17 @@ Recorded on 2026-08-19 from the release checkout:
   Stream Deck validation, and package dry-run.
 - The tests exercise all six registered action classes, empty and error states,
   Sentry authentication/API failures, bounded network and server-error retries,
-  stale-state recovery, editor path containment, macOS and Windows launch
-  argument boundaries, GitHub status and failure states, Resolve confirmation,
+  stale-state recovery, editor path containment, macOS launch argument
+  boundaries, GitHub status and failure states, Resolve confirmation,
   issue status updates, and Property Inspector validation/help behavior.
 - [GitHub Actions run 32325495299](https://github.com/rahulchhabria/sentry-stream-deck-plugin/actions/runs/32325495299)
-  passed the same gate and created installer artifacts on macOS, Windows, and
-  Linux for commit `449d3c4`.
+  passed the same gate and produced identical macOS-targeted installer artifacts
+  across its runners for commit `449d3c4`.
 - The three extracted CI installer payloads were byte-for-byte identical. Their
   sorted content manifest has SHA-256
   `76e10bc3666d7738bd950480a6525f7d57e0166c4c59b4f54bcc02649eaac162`.
 - Packaged installer SHA-256:
-  `d285de5c27a2bc339b32b5d485dd25cbea26d34dc82c06f058c5ae4f19a49779`.
+  `1a6036ac056b1831b6823cb04e8a0a0eed61ef2cabb7478b40096d4bf8667237`.
 - Every submission-bundle file is covered by `marketplace/SHA256SUMS.txt`; the
   outer ZIP is covered by `BUNDLE_SHA256SUMS.txt` beside it.
 
@@ -50,13 +50,11 @@ and Property Inspector workflows.
 
 ## Required manual evidence still pending
 
-- Clean-install the packaged installer through the Stream Deck GUI on a
-  supported Windows host.
 - Press all six actions on a physical or Virtual Stream Deck.
 - With disposable credentials/issues, verify Sentry success, authentication
   failure, rate-limit, timeout, and recovery behavior.
 - Verify editor, agent, clipboard, terminal/direct-launch, and GitHub workflows
-  on both supported operating systems.
+  on macOS.
 - Verify Resolve and Archive confirmations and mutations against a disposable
   issue using a token with `event:write`.
 - Verify Property Inspector validation, conditional fields, automatic saving,

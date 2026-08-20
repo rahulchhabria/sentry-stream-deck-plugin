@@ -136,9 +136,9 @@
 			setInvalid("sentry-url", !urlValid);
 
 			const repository = valueOf("repository");
-			const repositoryValid = !repository || repository.startsWith("/") || /^[A-Za-z]:[\\/]/.test(repository);
+			const repositoryValid = !repository || repository.startsWith("/");
 			setInvalid("repository", !repositoryValid);
-			if (!repositoryValid) errors.push("Repository must be an absolute macOS or Windows path.");
+			if (!repositoryValid) errors.push("Repository must be an absolute macOS path.");
 
 			const launchMode = valueOf("launch-mode") || "terminal";
 			const terminalKind = valueOf("terminal-kind") || "auto";
