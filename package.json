@@ -2,6 +2,7 @@
     "name": "sentry-stream-deck-plugin",
     "version": "0.1.0",
     "private": true,
+    "license": "MIT",
     "engines": {
         "node": ">=24"
     },
@@ -16,7 +17,7 @@
         "validate": "streamdeck validate com.rc.sentry-alerts.sdPlugin",
         "pack:check": "streamdeck pack --dry-run --force com.rc.sentry-alerts.sdPlugin",
         "pack": "streamdeck pack --force com.rc.sentry-alerts.sdPlugin",
-        "test": "node --import tsx --test 'src/**/*.test.ts'",
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc --noEmit -p tsconfig.test.json",
         "sim": "tsx scripts/simulate.ts"
     },

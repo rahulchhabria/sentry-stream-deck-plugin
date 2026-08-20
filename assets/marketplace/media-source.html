@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=1920, initial-scale=1" />
+	<title>Sentry Alerts Marketplace Media</title>
+	<style>
+		:root {
+			--bg: #070910;
+			--panel: #11141d;
+			--panel-2: #171a25;
+			--line: #30364a;
+			--text: #f8fafc;
+			--muted: #aeb6cb;
+			--purple: #8b5cf6;
+			--pink: #ff3d9a;
+			--blue: #60a5fa;
+			--cyan: #38bdf8;
+			--green: #34d399;
+		}
+		* { box-sizing: border-box; }
+		html, body { width: 1920px; height: 960px; margin: 0; overflow: hidden; }
+		body {
+			color: var(--text);
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+			background:
+				radial-gradient(circle at 94% 5%, rgba(118, 37, 188, .24), transparent 31%),
+				radial-gradient(circle at 5% 95%, rgba(31, 72, 141, .16), transparent 34%),
+				var(--bg);
+		}
+		.slide { display: none; width: 100%; height: 100%; padding: 64px 88px; }
+		body[data-slide="thumbnail"] #thumbnail,
+		body[data-slide="workflow"] #workflow,
+		body[data-slide="status"] #status,
+		body[data-slide="control"] #control { display: block; }
+		.brand { display: flex; align-items: center; gap: 20px; }
+		.brand img { width: 76px; height: 76px; border-radius: 18px; }
+		.brand-name { font-size: 32px; font-weight: 750; letter-spacing: -.5px; }
+		.brand-meta { color: var(--muted); font-size: 18px; margin-top: 5px; }
+		.eyebrow { color: #bd9cff; font-size: 21px; font-weight: 750; letter-spacing: 5px; text-transform: uppercase; }
+		h1 { margin: 24px 0 24px; font-size: 88px; line-height: .98; letter-spacing: -4px; }
+		h2 { margin: 14px 0; font-size: 58px; line-height: 1.05; letter-spacing: -2px; text-align: center; }
+		.subhead { color: var(--muted); font-size: 28px; line-height: 1.45; }
+		.badge { display: inline-flex; align-items: center; gap: 10px; margin-top: 34px; padding: 13px 18px; border: 1px solid #424b66; border-radius: 999px; color: #dbe2f3; background: rgba(20, 24, 35, .85); font-size: 18px; font-weight: 650; }
+		.badge::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 18px var(--green); }
+
+		#thumbnail { padding: 88px 100px; }
+		.hero { display: grid; grid-template-columns: .95fr 1.05fr; gap: 88px; align-items: center; height: 100%; }
+		.hero-copy .subhead { width: 720px; }
+		.deck-shell { padding: 56px; border: 4px solid #343b50; border-radius: 64px; background: rgba(4, 6, 10, .88); box-shadow: 0 34px 110px rgba(0, 0, 0, .55); }
+		.deck-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+		.deck-grid img { display: block; width: 100%; border: 4px solid #272d3e; border-radius: 30px; }
+		.deck-label { margin-top: 36px; text-align: center; color: #8791aa; font-size: 19px; letter-spacing: 2px; }
+
+		.slide-header { display: flex; justify-content: space-between; align-items: center; }
+		.slide-header .brand img { width: 58px; height: 58px; border-radius: 14px; }
+		.slide-header .brand-name { font-size: 25px; }
+		.slide-header .brand-meta { font-size: 15px; }
+		.slide-number { color: #7d879f; font-size: 18px; letter-spacing: 3px; }
+		.center-title { margin-top: 28px; }
+		.center-title .subhead { text-align: center; }
+
+		.workflow-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 22px; margin-top: 68px; }
+		.workflow-card { position: relative; min-width: 0; padding: 22px 18px 24px; border: 3px solid var(--accent); border-radius: 30px; background: linear-gradient(180deg, rgba(25, 29, 41, .96), rgba(13, 16, 24, .98)); text-align: center; }
+		.workflow-card:not(:last-child)::after { content: ""; position: absolute; top: 50%; right: -24px; width: 23px; height: 3px; background: #414a65; }
+		.workflow-card img { width: 145px; height: 145px; border-radius: 22px; }
+		.step { color: var(--accent); margin-top: 13px; font-weight: 800; letter-spacing: 2px; }
+		.workflow-card h3 { margin: 9px 0 8px; font-size: 25px; }
+		.workflow-card p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.35; }
+		.workflow-foot { margin-top: 74px; text-align: center; font-size: 27px; font-weight: 700; }
+
+		.status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; width: 1280px; margin: 64px auto 0; }
+		.status-card { min-height: 205px; display: grid; place-items: center; padding: 28px; border: 4px solid var(--accent); border-radius: 38px; background: rgba(18, 21, 30, .97); text-align: center; box-shadow: inset 0 0 45px color-mix(in srgb, var(--accent) 8%, transparent); }
+		.status-card strong { display: block; font-size: 53px; line-height: 1; }
+		.status-card span { display: block; margin-top: 20px; color: var(--accent); font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+		.status-foot { margin-top: 42px; color: var(--muted); text-align: center; font-size: 22px; }
+
+		.control-flow { display: grid; grid-template-columns: 1fr 90px 1fr 90px 1fr; align-items: center; gap: 24px; margin-top: 66px; }
+		.control-card { min-height: 365px; padding: 36px 36px 28px; border: 4px solid var(--accent); border-radius: 38px; background: rgba(17, 20, 29, .97); text-align: center; }
+		.control-card img { width: 150px; height: 150px; border-radius: 28px; }
+		.control-card h3 { margin: 16px 0 12px; font-size: 32px; }
+		.control-card p { margin: 0; color: var(--muted); font-size: 20px; line-height: 1.45; }
+		.arrow { color: #65708d; font-size: 74px; text-align: center; }
+		.control-points { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 52px; text-align: center; font-size: 23px; font-weight: 700; }
+		.control-points span::before { content: "✓"; margin-right: 9px; color: var(--green); }
+		.independent { position: absolute; right: 88px; bottom: 42px; color: #78839c; font-size: 14px; }
+	</style>
+</head>
+<body>
+	<section class="slide" id="thumbnail">
+		<div class="hero">
+			<div class="hero-copy">
+				<div class="brand">
+					<img src="app-icon-288.png" alt="" />
+					<div><div class="brand-name">Sentry Alerts</div><div class="brand-meta">by Rahul Chhabria</div></div>
+				</div>
+				<p class="eyebrow">Sentry alerts for Stream Deck</p>
+				<h1>Own the issue.<br />Close the loop.</h1>
+				<p class="subhead">A focused six-key workflow from a new Sentry issue to inspected code, agent handoff, PR status, and intentional resolution.</p>
+				<div class="badge">Independent community integration</div>
+			</div>
+			<div class="deck-shell">
+				<div class="deck-grid">
+					<img src="../streamdeck-icons/pulse-normal.svg" alt="New Issue" />
+					<img src="../streamdeck-icons/inspect-normal.svg" alt="Inspect" />
+					<img src="../streamdeck-icons/code-normal.svg" alt="Code" />
+					<img src="../streamdeck-icons/agent-normal.svg" alt="Agent" />
+					<img src="../streamdeck-icons/pr-normal.svg" alt="View PR" />
+					<img src="../streamdeck-icons/resolve-normal.svg" alt="Resolve" />
+				</div>
+				<div class="deck-label">PULSE · INSPECT · CODE · AGENT · PR · RESOLVE</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="slide" id="workflow">
+		<header class="slide-header">
+			<div class="brand"><img src="app-icon-288.png" alt="" /><div><div class="brand-name">Sentry Alerts</div><div class="brand-meta">Six-key response workflow</div></div></div>
+			<div class="slide-number">WORKFLOW 01</div>
+		</header>
+		<div class="center-title"><h2>One issue. Six deliberate decisions.</h2><p class="subhead">Move from signal to resolution without losing human control.</p></div>
+		<div class="workflow-row">
+			<div class="workflow-card" style="--accent:#ff375f"><img src="../streamdeck-icons/pulse-normal.svg" alt="" /><div class="step">01</div><h3>PULSE</h3><p>Notice what is new</p></div>
+			<div class="workflow-card" style="--accent:#a78bfa"><img src="../streamdeck-icons/inspect-normal.svg" alt="" /><div class="step">02</div><h3>INSPECT</h3><p>Open the exact issue</p></div>
+			<div class="workflow-card" style="--accent:#60a5fa"><img src="../streamdeck-icons/code-normal.svg" alt="" /><div class="step">03</div><h3>CODE</h3><p>Jump to its source</p></div>
+			<div class="workflow-card" style="--accent:#ff3d9a"><img src="../streamdeck-icons/agent-normal.svg" alt="" /><div class="step">04</div><h3>AGENT</h3><p>Hand off locally</p></div>
+			<div class="workflow-card" style="--accent:#38bdf8"><img src="../streamdeck-icons/pr-normal.svg" alt="" /><div class="step">05</div><h3>VIEW PR</h3><p>Track CI and review</p></div>
+			<div class="workflow-card" style="--accent:#34d399"><img src="../streamdeck-icons/resolve-normal.svg" alt="" /><div class="step">06</div><h3>RESOLVE</h3><p>Confirm and close</p></div>
+		</div>
+		<div class="workflow-foot">Short press to act. Long press for intentional alternate actions.</div>
+		<div class="independent">Independent community integration · Not affiliated with Sentry or Elgato</div>
+	</section>
+
+	<section class="slide" id="status">
+		<header class="slide-header">
+			<div class="brand"><img src="app-icon-288.png" alt="" /><div><div class="brand-name">Sentry Alerts</div><div class="brand-meta">Status at a glance</div></div></div>
+			<div class="slide-number">STATES 02</div>
+		</header>
+		<div class="center-title"><h2>Live status where your hands already are.</h2><p class="subhead">Each key communicates the current state before you press it.</p></div>
+		<div class="status-grid">
+			<div class="status-card" style="--accent:#ff375f"><div><strong>NEW 3</strong><span>NEW ISSUES</span></div></div>
+			<div class="status-card" style="--accent:#a78bfa"><div><strong>ISSUE</strong><span>SELECTED</span></div></div>
+			<div class="status-card" style="--accent:#60a5fa"><div><strong>CODE</strong><span>SOURCE READY</span></div></div>
+			<div class="status-card" style="--accent:#ff3d9a"><div><strong>SENT</strong><span>AGENT HANDOFF</span></div></div>
+			<div class="status-card" style="--accent:#38bdf8"><div><strong>READY</strong><span>PR CHECKS PASS</span></div></div>
+			<div class="status-card" style="--accent:#34d399"><div><strong>PRESS 2×</strong><span>CONFIRM RESOLVE</span></div></div>
+		</div>
+		<div class="status-foot">Authentication, rate-limit, network, CI, and confirmation states remain visible at a glance.</div>
+		<div class="independent">Independent community integration · Not affiliated with Sentry or Elgato</div>
+	</section>
+
+	<section class="slide" id="control">
+		<header class="slide-header">
+			<div class="brand"><img src="app-icon-288.png" alt="" /><div><div class="brand-name">Sentry Alerts</div><div class="brand-meta">Local tools, explicit control</div></div></div>
+			<div class="slide-number">CONTROL 03</div>
+		</header>
+		<div class="center-title"><h2>Local tools. Explicit control.</h2><p class="subhead">Your repository, editor, coding agent, and GitHub workflow stay on your machine.</p></div>
+		<div class="control-flow">
+			<div class="control-card" style="--accent:#8b5cf6"><img src="app-icon-288.png" alt="" /><h3>Sentry signal</h3><p>Poll one configured project.<br />Baseline existing issues.</p></div>
+			<div class="arrow">→</div>
+			<div class="control-card" style="--accent:#60a5fa"><img src="../streamdeck-icons/code-normal.svg" alt="" /><h3>Local context</h3><p>Open the exact repository frame.<br />No source-code upload by the plugin.</p></div>
+			<div class="arrow">→</div>
+			<div class="control-card" style="--accent:#34d399"><img src="../streamdeck-icons/resolve-normal.svg" alt="" /><h3>Human approval</h3><p>Choose when to hand off.<br />Confirm before resolve or archive.</p></div>
+		</div>
+		<div class="control-points"><span>No automatic agent launch</span><span>Two-press mutations</span><span>Configurable local CLIs</span></div>
+		<div class="independent">Independent community integration · Not affiliated with Sentry or Elgato</div>
+	</section>
+
+	<script>
+		const slide = new URLSearchParams(location.search).get("slide") || "thumbnail";
+		document.body.dataset.slide = slide;
+	</script>
+</body>
+</html>

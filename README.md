@@ -229,3 +229,9 @@ submission.
 - Setup and troubleshooting: [SUPPORT.md](SUPPORT.md)
 - Bug reports: <https://github.com/rahulchhabria/sentry-stream-deck-plugin/issues>
 - Data handling: [PRIVACY.md](PRIVACY.md)
+
+## License
+
+The source code is available under the [MIT License](LICENSE). Sentry and
+Stream Deck names, logos, and marks remain the property of their respective
+owners and are not licensed under the MIT License.

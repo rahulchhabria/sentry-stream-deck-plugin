@@ -19,6 +19,8 @@ or legal verification.
 - [x] Support instructions are published from [SUPPORT.md](SUPPORT.md).
 - [x] Public issue support is available at <https://github.com/rahulchhabria/sentry-stream-deck-plugin/issues>.
 - [x] Privacy disclosure is published from [PRIVACY.md](PRIVACY.md).
+- [x] The repository is released under the [MIT License](LICENSE); third-party
+  trademarks remain the property of their owners.
 - [x] Manifest and Property Inspector product, support, setup, and privacy URLs all resolve anonymously after publication.
 
 ## Automated release evidence
@@ -28,7 +30,7 @@ or legal verification.
 - [x] `npm run check` passes lint, typecheck, tests, production build, official validation, and package dry-run.
 - [x] `npm run pack` creates the versioned `.streamDeckPlugin` installer.
 - [x] Extracted installer contains no credentials, local paths, logs, `.env` files, or source maps.
-- [ ] Installer and Marketplace-bundle checksums are recorded and verified.
+- [x] Installer and Marketplace-bundle checksums are recorded and verified.
 
 Automated evidence for `0.1.0.0` on 2026-08-19:
 
@@ -36,11 +38,13 @@ Automated evidence for `0.1.0.0` on 2026-08-19:
   package dry-run passed.
 - `npm audit` reported zero vulnerabilities.
 - Installer SHA-256:
-  `55ff6e3559dbcffd39e474410b2b3cdd8404549c1962aa480fe19c24b86d619f`.
+  `96fb1c02e0372ad479d65541dabfbacc33f288d80f8b7267deaadc795a42ac6c`.
+- Marketplace bundle SHA-256:
+  `62750b60735466eecde7c6da2abbe7daa82ecedb68c5080b214884f396b31e4a`.
 
 ## Manual platform and workflow certification
 
-- [ ] Clean-install the packaged installer on a supported macOS version.
+- [x] Clean-install the packaged installer on a supported macOS version.
 - [ ] Clean-install the packaged installer on a supported Windows version.
 - [ ] Test all six actions together on a physical Stream Deck or Virtual Stream Deck.
 - [ ] Verify Sentry success, authentication failure, rate-limit, timeout, and recovery states.
@@ -56,3 +60,6 @@ Automated evidence for `0.1.0.0` on 2026-08-19:
 - [ ] Upload the final installer and media from a freshly generated release bundle.
 - [ ] Paste approved listing, privacy, support, and release-note copy into Maker Console.
 - [ ] Submit only after every applicable blocking item above has evidence.
+
+See [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md) for the exact distinction
+between automated, observed, and still-pending manual evidence.
