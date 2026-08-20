@@ -199,8 +199,9 @@ applicable item in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) has evidence.
 - [ ] Obtain Sentry's permission or documented legal clearance for the exact
       product name and all Sentry mark and imagery usage; the disclaimer above
       is not legal clearance.
-- [ ] Upload the 288×288 app icon, 1920×960 thumbnail, and three 1920×960
-      gallery images from the prepared release bundle.
+- [ ] Upload [the 288×288 app icon](assets/marketplace/app-icon-288.png), the
+      1920×960 thumbnail, and three 1920×960 gallery images from the prepared
+      release bundle.
 - [ ] Publish this release's setup, support, and privacy documents, then verify
       every manifest and Property Inspector URL anonymously.
 - [ ] Bump `Version` in `manifest.json` (4-part, e.g. `0.1.1.0`) and the

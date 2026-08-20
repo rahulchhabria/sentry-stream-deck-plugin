@@ -36,7 +36,7 @@ Automated evidence for `0.1.0.0` on 2026-08-19:
   package dry-run passed.
 - `npm audit` reported zero vulnerabilities.
 - Installer SHA-256:
-  `81a2f9b9e77d0a1f4aec7b8fa4e4dfc19d4436519c9936a0464e62028ec0b664`.
+  `55ff6e3559dbcffd39e474410b2b3cdd8404549c1962aa480fe19c24b86d619f`.
 
 ## Manual platform and workflow certification
 
