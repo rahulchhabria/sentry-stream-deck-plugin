@@ -17,9 +17,12 @@ Recorded on 2026-08-19 from the release checkout:
   stale-state recovery, editor path containment, macOS and Windows launch
   argument boundaries, GitHub status and failure states, Resolve confirmation,
   issue status updates, and Property Inspector validation/help behavior.
-- GitHub Actions runs the same gate and creates an installer artifact on macOS,
-  Windows, and Linux. Link the successful run here after the release commit is
-  pushed: **pending**.
+- [GitHub Actions run 32325126104](https://github.com/rahulchhabria/sentry-stream-deck-plugin/actions/runs/32325126104)
+  passed the same gate and created installer artifacts on macOS, Windows, and
+  Linux for commit `c73a82c`.
+- The three extracted CI installer payloads were byte-for-byte identical. Their
+  sorted content manifest has SHA-256
+  `d0cedc6bda8dd13837e78d5027c14cb6c3c760fbcd33a6484c0a3e2c57314f9e`.
 - Packaged installer SHA-256:
   `96fb1c02e0372ad479d65541dabfbacc33f288d80f8b7267deaadc795a42ac6c`.
 - Every submission-bundle file is covered by `marketplace/SHA256SUMS.txt`; the
