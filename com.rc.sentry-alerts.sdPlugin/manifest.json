@@ -5,7 +5,7 @@
 	"Author": "Rahul Chhabria",
 	"Actions": [
 		{
-			"Name": "Pulse",
+			"Name": "New Issue",
 			"UUID": "com.rc.sentry-alerts.error-pulse",
 			"Icon": "imgs/actions/pulse/icon",
 			"Tooltip": "Flashes on genuinely new Sentry issues; short press acknowledges and selects; long press toggles mute.",

@@ -38,9 +38,9 @@ Automated evidence for `0.1.0.0` on 2026-08-19:
   package dry-run passed.
 - `npm audit` reported zero vulnerabilities.
 - Installer SHA-256:
-  `96fb1c02e0372ad479d65541dabfbacc33f288d80f8b7267deaadc795a42ac6c`.
+  `d285de5c27a2bc339b32b5d485dd25cbea26d34dc82c06f058c5ae4f19a49779`.
 - Marketplace bundle SHA-256:
-  `ae58f04f3c2d86b49acd496fbd472b4fb0743390b4904668543939f829befee3`.
+  `00ff3d3935fe29b17027ed6d0e1a358a138f3626b278c99ccc55c6e6a9a769cf`.
 
 ## Manual platform and workflow certification
 

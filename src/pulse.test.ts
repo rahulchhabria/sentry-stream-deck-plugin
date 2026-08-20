@@ -22,7 +22,7 @@ function pickNewestNewIssue(snapshot: IssueSnapshot | undefined): SentryIssue | 
 	return snapshot.issues.find((i) => newSet.has(i.id));
 }
 
-test("Pulse selects the newest of the new issues instead of issues[0]", () => {
+test("New Issue selects the newest of the new issues instead of issues[0]", () => {
 	const issues = [mk("3"), mk("2"), mk("1")];
 	const snapshot: IssueSnapshot = {
 		status: "ready",
@@ -33,7 +33,7 @@ test("Pulse selects the newest of the new issues instead of issues[0]", () => {
 	assert.equal(pickNewestNewIssue(snapshot)?.id, "1");
 });
 
-test("Pulse retains the exact alert-causing issue across later polls", () => {
+test("New Issue retains the exact alert-causing issue across later polls", () => {
 	const alertSnapshot: IssueSnapshot = {
 		status: "ready",
 		issues: [mk("3"), mk("2"), mk("1")],
@@ -51,7 +51,7 @@ test("Pulse retains the exact alert-causing issue across later polls", () => {
 	assert.equal(mergePendingIssues(pending, laterSnapshot)[0]?.id, "1");
 });
 
-test("Pulse consumes one pending issue at a time and keeps the rest alerting", () => {
+test("New Issue consumes one pending issue at a time and keeps the rest alerting", () => {
 	const pending = [mk("3"), mk("2"), mk("1")];
 	const first = takePendingIssue(pending);
 	assert.equal(first.issue?.id, "3");
@@ -61,7 +61,7 @@ test("Pulse consumes one pending issue at a time and keeps the rest alerting", (
 	assert.deepEqual(second.remaining.map((issue) => issue.id), ["1"]);
 });
 
-test("Pulse drops pending issues that are no longer unresolved", () => {
+test("New Issue drops pending issues that are no longer unresolved", () => {
 	const pending = [mk("2"), mk("1")];
 	const snapshot: IssueSnapshot = {
 		status: "ready",

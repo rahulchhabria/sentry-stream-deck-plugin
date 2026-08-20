@@ -15,7 +15,7 @@
 ## Description
 
 Sentry Alerts turns a Stream Deck into a focused six-key response console for
-Sentry issues. Pulse detects genuinely new unresolved issues without alerting
+Sentry issues. New Issue detects genuinely new unresolved issues without alerting
 on the existing backlog. Inspect opens the selected issue, Code jumps to its
 best in-app source frame in your local editor, Agent hands the issue to your
 chosen local coding agent, View PR follows GitHub and CI status, and Resolve
@@ -34,7 +34,7 @@ Elgato.
 
 ## Setup tips
 
-1. Add the actions in this layout: `PULSE | INSPECT | CODE` over
+1. Add the actions in this layout: `NEW ISSUE | INSPECT | CODE` over
    `AGENT | VIEW PR | RESOLVE`.
 2. Configure shared settings from any action's Property Inspector.
 3. Use a Sentry token with `event:read` and `project:read`; add `event:write`

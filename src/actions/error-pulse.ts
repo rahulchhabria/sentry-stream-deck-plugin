@@ -87,7 +87,7 @@ export class ErrorPulse extends LongPressAction {
 		}
 		if (issue) {
 			issueSelectionStore.select(issue.id);
-			streamDeck.logger.info(`Pulse selected ${issue.shortId}`);
+			streamDeck.logger.info(`New Issue selected ${issue.shortId}`);
 			if (remaining.length > 0) {
 				this.ensureFlashing(action);
 				await action.setImage(createActionIcon("pulse", {
@@ -223,7 +223,7 @@ export class ErrorPulse extends LongPressAction {
 			});
 			void key.setImage(image).catch((error: unknown) => {
 				const message = error instanceof Error ? error.message : "Unknown error";
-				streamDeck.logger.error(`Error Pulse flash failed: ${message}`);
+				streamDeck.logger.error(`New Issue flash failed: ${message}`);
 			});
 		}, FLASH_INTERVAL_MS);
 		this.flashTimers.set(key.id, timer);

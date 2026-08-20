@@ -31,10 +31,9 @@ class PulseMuteStore {
 	private notify(subscriber: Subscriber, muted: boolean): void {
 		Promise.resolve(subscriber(muted)).catch((error: unknown) => {
 			const message = error instanceof Error ? error.message : "Unknown error";
-			streamDeck.logger.error(`Pulse mute update failed: ${message}`);
+			streamDeck.logger.error(`New Issue mute update failed: ${message}`);
 		});
 	}
 }
 
 export const pulseMuteStore = new PulseMuteStore();
-

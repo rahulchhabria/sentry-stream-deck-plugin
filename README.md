@@ -18,7 +18,7 @@ NEW ISSUE INSPECT CODE
 AGENT     VIEW PR RESOLVE
 ```
 
-### Pulse
+### New Issue
 
 Shares a single poll of Sentry's v0 Issues API every 15 seconds. The key:
 
@@ -32,7 +32,7 @@ Shares a single poll of Sentry's v0 Issues API every 15 seconds. The key:
 
 ### Inspect / Code
 
-Pulse maintains a shared selected issue. The selection remains stable across
+New Issue maintains a shared selected issue. The selection remains stable across
 refreshes and during transient API failures, and advances automatically when a
 resolved issue disappears from the queue.
 
@@ -128,7 +128,7 @@ agent:
 - Claude Code: configure the same MCP server or local install in your project
   settings.
 
-The Error Pulse flash is an interrupt; the new key press is the decision. The
+The New Issue flash is an interrupt; the key press is the decision. The
 plugin never auto-launches an agent when flashing.
 
 ## Develop
