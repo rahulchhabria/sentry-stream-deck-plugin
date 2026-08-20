@@ -6,7 +6,7 @@
 	"Actions": [
 		{
 			"Name": "Pulse",
-			"UUID": "com.rahulchhabria.sentry-human-loop.error-pulse",
+			"UUID": "com.rc.sentry-alerts.error-pulse",
 			"Icon": "imgs/actions/pulse/icon",
 			"Tooltip": "Flashes on genuinely new Sentry issues; short press acknowledges and selects; long press toggles mute.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
@@ -22,7 +22,7 @@
 		},
 		{
 			"Name": "Inspect Issue",
-			"UUID": "com.rahulchhabria.sentry-human-loop.review-issue",
+			"UUID": "com.rc.sentry-alerts.review-issue",
 			"Icon": "imgs/actions/inspect/icon",
 			"Tooltip": "Opens the selected issue in Sentry.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
@@ -38,7 +38,7 @@
 		},
 		{
 			"Name": "Code",
-			"UUID": "com.rahulchhabria.sentry-human-loop.next-issue",
+			"UUID": "com.rc.sentry-alerts.next-issue",
 			"Icon": "imgs/actions/code/icon",
 			"Tooltip": "Opens the selected issue's best local source frame in your configured IDE.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
@@ -54,7 +54,7 @@
 		},
 		{
 			"Name": "Agent",
-			"UUID": "com.rahulchhabria.sentry-human-loop.send-to-agent",
+			"UUID": "com.rc.sentry-alerts.send-to-agent",
 			"Icon": "imgs/actions/agent/icon",
 			"Tooltip": "Sends the selected issue to your local coding agent via CLI. Long press explicitly asks for a draft PR.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
@@ -70,7 +70,7 @@
 		},
 		{
 			"Name": "View PR",
-			"UUID": "com.rahulchhabria.sentry-human-loop.loop",
+			"UUID": "com.rc.sentry-alerts.loop",
 			"Icon": "imgs/actions/pr/icon",
 			"Tooltip": "Opens the selected issue's PR and shows CI status. If no PR exists, asks the configured agent to validate local changes and create a draft PR.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
@@ -86,7 +86,7 @@
 		},
 		{
 			"Name": "Resolve",
-			"UUID": "com.rahulchhabria.sentry-human-loop.done",
+			"UUID": "com.rc.sentry-alerts.done",
 			"Icon": "imgs/actions/resolve/icon",
 			"Tooltip": "Resolve (short) or archive (long) the selected issue via a two-press confirmation. Requires event:write.",
 			"PropertyInspectorPath": "ui/sentry-settings.html",
@@ -125,5 +125,5 @@
 	"Nodejs": {
 		"Version": "24"
 	},
-	"UUID": "com.rahulchhabria.sentry-human-loop"
+	"UUID": "com.rc.sentry-alerts"
 }

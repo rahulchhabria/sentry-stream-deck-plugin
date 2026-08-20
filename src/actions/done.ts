@@ -23,7 +23,7 @@ const IMAGES = {
 	none: createActionIcon("resolve", { color: "#60646c", dimmed: true })
 };
 
-@action({ UUID: "com.rahulchhabria.sentry-human-loop.done" })
+@action({ UUID: "com.rc.sentry-alerts.done" })
 export class DoneAction extends LongPressAction {
 	private readonly subscriptions = new Map<string, () => void>();
 	private readonly confirmations = new Map<string, { issueId: string; status: "resolved" | "ignored" }>();

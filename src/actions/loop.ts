@@ -34,7 +34,7 @@ const IMAGES = {
 	setup: createActionIcon("pr", { color: "#f59e0b", dimmed: true, label: "SETUP" })
 };
 
-@action({ UUID: "com.rahulchhabria.sentry-human-loop.loop" })
+@action({ UUID: "com.rc.sentry-alerts.loop" })
 export class LoopStatusAction extends SingletonAction {
 	private readonly subscriptions = new Map<string, Array<() => void>>();
 	private readonly timers = new Map<string, ReturnType<typeof setInterval>>();

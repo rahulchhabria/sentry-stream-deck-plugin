@@ -20,7 +20,7 @@ const ERROR_STEADY = ERROR_DIM;
 const ACK_IMAGE = createActionIcon("pulse", { color: "#34d399", glow: true, label: "SELECTED" });
 const QUIET_IMAGE = createActionIcon("pulse", { color: "#34d399" });
 
-@action({ UUID: "com.rahulchhabria.sentry-human-loop.error-pulse" })
+@action({ UUID: "com.rc.sentry-alerts.error-pulse" })
 export class ErrorPulse extends LongPressAction {
 	private readonly subscriptions = new Map<string, () => void>();
 	private readonly flashTimers = new Map<string, ReturnType<typeof setInterval>>();

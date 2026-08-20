@@ -24,7 +24,7 @@ import { getSentrySettings, hasRequiredSettings } from "../settings";
  * probe, so this action intentionally uses only the documented Issues API and
  * opens the selected issue in Sentry for review.
  */
-@action({ UUID: "com.rahulchhabria.sentry-human-loop.review-issue" })
+@action({ UUID: "com.rc.sentry-alerts.review-issue" })
 export class SelectedIssue extends SingletonAction {
 	private readonly subscriptions = new Map<string, () => void>();
 

@@ -28,7 +28,7 @@ const IMAGES = {
 };
 
 /** Retains the old Next action UUID so existing physical profiles become Code in place. */
-@action({ UUID: "com.rahulchhabria.sentry-human-loop.next-issue" })
+@action({ UUID: "com.rc.sentry-alerts.next-issue" })
 export class OpenCode extends SingletonAction {
 	private readonly subscriptions = new Map<string, () => void>();
 	private readonly feedbackTimers = new Map<string, ReturnType<typeof setTimeout>>();

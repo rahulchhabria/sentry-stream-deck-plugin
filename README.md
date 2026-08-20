@@ -186,7 +186,7 @@ npm run check
 ## Package
 
 ```sh
-npm run pack    # -> com.rahulchhabria.sentry-human-loop.streamDeckPlugin
+npm run pack    # -> com.rc.sentry-alerts.streamDeckPlugin
 ```
 
 Upload that file at <https://marketplace.elgato.com/maker> only after every
@@ -195,7 +195,7 @@ applicable item in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) has evidence.
 ## Before submitting to the Marketplace
 
 - [ ] Confirm `Sentry Alerts`, free pricing, your individual Maker identity, and
-      `com.rahulchhabria.sentry-human-loop` before creating the product.
+      `com.rc.sentry-alerts` before creating the product.
 - [ ] Obtain Sentry's permission or documented legal clearance for the exact
       product name and all Sentry mark and imagery usage; the disclaimer above
       is not legal clearance.
@@ -209,10 +209,10 @@ applicable item in [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) has evidence.
 
 ### Renaming the plugin UUID
 
-The current UUID is `com.rahulchhabria.sentry-human-loop`. To change the prefix,
+The current UUID is `com.rc.sentry-alerts`. To change the prefix,
 update every occurrence consistently:
 
-1. Rename the folder `com.rahulchhabria.sentry-human-loop.sdPlugin`.
+1. Rename the folder `com.rc.sentry-alerts.sdPlugin`.
 2. In `manifest.json`: the top-level `UUID` and every action `UUID`.
 3. In `src/actions/`: update every `@action({ UUID: ... })` decorator to match
    its manifest action UUID.

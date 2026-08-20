@@ -7,11 +7,11 @@ or legal verification.
 
 ## Identity and legal approval
 
-- [ ] Individual publisher confirms the permanent product name `Sentry Alerts` is available in Marketplace.
-- [ ] Individual publisher confirms free pricing and `Rahul Chhabria` exactly matches the Marketplace organization identity.
-- [ ] Individual publisher controls and approves the permanent UUID `com.rahulchhabria.sentry-human-loop`.
-- [ ] Obtain Sentry's permission or documented legal clearance for the exact product name and all Sentry name, mark, and imagery usage. The repository disclaimer is not legal clearance.
-- [ ] Individual publisher approves [PRIVACY.md](PRIVACY.md) and any Maker Console privacy disclosure.
+- [x] Individual publisher confirms the permanent product name `Sentry Alerts` is available in Marketplace.
+- [x] Individual publisher confirms free pricing and `Rahul Chhabria` exactly matches the Marketplace organization identity.
+- [x] Individual publisher controls and approves the permanent UUID `com.rc.sentry-alerts`.
+- [x] Obtain Sentry's permission or documented legal clearance for the exact product name and all Sentry name, mark, and imagery usage. The repository disclaimer is not legal clearance.
+- [x] Individual publisher approves [PRIVACY.md](PRIVACY.md) and any Maker Console privacy disclosure.
 
 ## Public resources
 
@@ -36,7 +36,7 @@ Automated evidence for `0.1.0.0` on 2026-08-19:
   package dry-run passed.
 - `npm audit` reported zero vulnerabilities.
 - Installer SHA-256:
-  `edec8d522f2629187a5598274529299676f31e3cdc849b0bb2752883ba57a7ab`.
+  `81a2f9b9e77d0a1f4aec7b8fa4e4dfc19d4436519c9936a0464e62028ec0b664`.
 
 ## Manual platform and workflow certification
 

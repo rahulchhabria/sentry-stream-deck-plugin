@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-const path = "com.rahulchhabria.sentry-human-loop.sdPlugin/ui/sentry-settings.html";
+const path = "com.rc.sentry-alerts.sdPlugin/ui/sentry-settings.html";
 
 test("Property Inspector provides validation, progressive disclosure, and public help", async () => {
 	const html = await readFile(path, "utf8");

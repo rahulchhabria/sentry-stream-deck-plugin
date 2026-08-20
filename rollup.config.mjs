@@ -6,7 +6,7 @@ import path from "node:path";
 import url from "node:url";
 
 const isWatching = !!process.env.ROLLUP_WATCH;
-const sdPlugin = "com.rahulchhabria.sentry-human-loop.sdPlugin";
+const sdPlugin = "com.rc.sentry-alerts.sdPlugin";
 
 /**
  * @type {import('rollup').RollupOptions}

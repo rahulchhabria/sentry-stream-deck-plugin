@@ -22,7 +22,7 @@ const IMAGES = {
 	error: createActionIcon("agent", { color: "#f59e0b", glow: true, label: "FAIL" })
 };
 
-@action({ UUID: "com.rahulchhabria.sentry-human-loop.send-to-agent" })
+@action({ UUID: "com.rc.sentry-alerts.send-to-agent" })
 export class SendToAgent extends LongPressAction {
 	private readonly subscriptions = new Map<string, Array<() => void>>();
 
