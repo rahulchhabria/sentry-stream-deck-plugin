@@ -40,7 +40,7 @@ Automated evidence for `0.1.0.0` on 2026-08-19:
 - Installer SHA-256:
   `d285de5c27a2bc339b32b5d485dd25cbea26d34dc82c06f058c5ae4f19a49779`.
 - Marketplace bundle SHA-256:
-  `00ff3d3935fe29b17027ed6d0e1a358a138f3626b278c99ccc55c6e6a9a769cf`.
+  `484b28eedb72d99a471fcefb93d696af7fbe7af6dacd915e5ac2ee12134ee521`.
 
 ## Manual platform and workflow certification
 
